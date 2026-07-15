@@ -1,19 +1,37 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
+
 export default function Home() {
+  const [message, setMessage] = useState("جاري الاتصال...");
+
+  useEffect(() => {
+    async function testConnection() {
+      const { error } = await supabase
+        .from("students")
+        .select("*")
+        .limit(1);
+
+      if (error) {
+        if (error.code === "PGRST205" || error.message.includes("students")) {
+          setMessage("✅ تم الاتصال بـ Supabase بنجاح (جدول students لم يتم إنشاؤه بعد)");
+        } else {
+          setMessage(`❌ ${error.message}`);
+        }
+      } else {
+        setMessage("✅ تم الاتصال بقاعدة البيانات بنجاح");
+      }
+    }
+
+    testConnection();
+  }, []);
+
   return (
-    <main className="min-h-screen bg-slate-100 flex items-center justify-center">
-      <div className="text-center">
-        <h1 className="text-5xl font-bold text-blue-700">
-          BioPulse
-        </h1>
-
-        <p className="mt-4 text-xl text-gray-700">
-          منصة اختبارات الأحياء للثانوية العامة
-        </p>
-
-        <button className="mt-8 bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl text-lg transition">
-          ابدأ الآن
-        </button>
-      </div>
+    <main className="flex min-h-screen items-center justify-center">
+      <h1 className="text-3xl font-bold text-blue-600">
+        {message}
+      </h1>
     </main>
   );
 }
