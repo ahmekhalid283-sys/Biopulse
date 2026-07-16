@@ -1,30 +1,37 @@
 "use client";
 
+import Link from "next/link";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
 const chapters = [
   {
+    slug: "support-and-movement",
     title: "الدعامة والحركة",
     lectures: 7,
     progress: "0%",
   },
   {
+    slug: "hormones",
     title: "الهرمونات",
     lectures: 4,
     progress: "0%",
   },
   {
+    slug: "reproduction",
     title: "التكاثر",
     lectures: 7,
     progress: "0%",
   },
   {
+    slug: "immunity",
     title: "المناعة",
     lectures: 4,
     progress: "0%",
   },
   {
+    slug: "dna-rna",
     title: "DNA / RNA",
     lectures: 8,
     progress: "0%",
@@ -40,7 +47,7 @@ export default function ChaptersPage() {
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
         {chapters.map((chapter) => (
-          <Card key={chapter.title}>
+          <Card key={chapter.slug}>
             <CardHeader>
               <CardTitle>{chapter.title}</CardTitle>
             </CardHeader>
@@ -50,9 +57,11 @@ export default function ChaptersPage() {
 
               <p>📈 نسبة الإنجاز: {chapter.progress}</p>
 
-              <Button className="w-full">
-                دخول الفصل
-              </Button>
+              <Link href={`/chapters/${chapter.slug}`}>
+                <Button className="w-full">
+                  دخول الفصل
+                </Button>
+              </Link>
             </CardContent>
           </Card>
         ))}
