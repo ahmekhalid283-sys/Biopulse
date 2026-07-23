@@ -1,36 +1,94 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 
-import { Button } from "@/components/ui/button";
+import { supabase } from "@/lib/supabase";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
-const lectures = [
-  {
-    slug: "lecture-1",
-    title: "المحاضرة الأولى",
-    duration: "2 ساعة",
-    status: "مفتوحة",
-  },
-  {
-    slug: "lecture-2",
-    title: "المحاضرة الثانية",
-    duration: "1:45 ساعة",
-    status: "مفتوحة",
-  },
-  {
-    slug: "lecture-3",
-    title: "المحاضرة الثالثة",
-    duration: "2:10 ساعة",
-    status: "مغلقة",
-  },
-];
+type Chapter = {
+  id: string;
+  title: string;
+};
+
+type Lecture = {
+  id: string;
+  title: string;
+  duration: string | null;
+  lecture_order: number;
+  youtube_url: string | null;
+  pdf_url: string | null;
+  is_free: boolean;
+  is_published: boolean;
+};
 
 export default function ChapterPage() {
+  const params = useParams();
+
+  const [chapter, setChapter] = useState<Chapter | null>(null);
+  const [lectures, setLectures] = useState<Lecture[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  async function loadData() {
+    const slug = params.slug as string;
+
+    const { data: chapterData, error: chapterError } = await supabase
+      .from("chapters")
+      .select("*")
+      .eq("slug", slug)
+      .single();
+
+    if (chapterError || !chapterData) {
+      setLoading(false);
+      return;
+    }
+
+    setChapter(chapterData);
+
+    const { data: lecturesData } = await supabase
+      .from("lectures")
+      .select("*")
+      .eq("chapter_id", chapterData.id)
+      .eq("is_published", true)
+      .order("lecture_order");
+
+    setLectures(lecturesData || []);
+
+    setLoading(false);
+  }
+
+  if (loading) {
+    return (
+      <main className="p-8">
+        <h2 className="text-2xl font-bold">
+          جاري تحميل المحاضرات...
+        </h2>
+      </main>
+    );
+  }
+
+  if (!chapter) {
+    return (
+      <main className="p-8">
+        <h2 className="text-2xl font-bold text-red-600">
+          الفصل غير موجود
+        </h2>
+      </main>
+    );
+  }
+
   return (
     <main className="min-h-screen bg-slate-100 p-8">
+
       <h1 className="text-4xl font-bold text-blue-600 mb-2">
-        الدعامة والحركة
+        {chapter.title}
       </h1>
 
       <p className="text-gray-500 mb-8">
@@ -38,42 +96,73 @@ export default function ChapterPage() {
       </p>
 
       <div className="space-y-6">
+
         {lectures.map((lecture) => (
-          <Card key={lecture.slug}>
+
+          <Card key={lecture.id}>
+
             <CardHeader>
-              <CardTitle>{lecture.title}</CardTitle>
+              <CardTitle>
+                {lecture.title}
+              </CardTitle>
             </CardHeader>
 
-            <CardContent className="space-y-3">
-              <p>⏱ {lecture.duration}</p>
+            <CardContent className="space-y-4">
 
               <p>
-                الحالة:{" "}
-                <span className="font-bold">
-                  {lecture.status}
+                ⏱ {lecture.duration || "-"}
+              </p>
+
+              <p>
+                الحالة :
+                {" "}
+                <span className="font-bold text-green-600">
+                  منشورة
                 </span>
               </p>
 
-              <div className="flex gap-3">
-                <a
-                  href="/lectures/lecture-1"
-                  className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-white"
-                >
-                  🎥 مشاهدة
-                </a>
+              <div className="flex gap-3 flex-wrap">
 
-                <Button variant="outline">
-                  📄 PDF
+                <Link href={`/lectures/${lecture.id}`}>
+                  <Button>
+                    🎥 مشاهدة
+                  </Button>
+                </Link>
+
+                {lecture.pdf_url && (
+                  <a
+                    href={lecture.pdf_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <Button>
+                      📄 PDF
+                    </Button>
+                  </a>
+                )}
+
+                <Button>
+                  📝 الامتحان
                 </Button>
 
-                <Button variant="secondary">
-                  📝 امتحان
-                </Button>
               </div>
+
+            </CardContent>
+
+          </Card>
+
+        ))}
+
+        {lectures.length === 0 && (
+          <Card>
+            <CardContent className="p-6 text-center">
+              لا توجد محاضرات لهذا الفصل.
             </CardContent>
           </Card>
-        ))}
+        )}
+
       </div>
+
     </main>
   );
 }
