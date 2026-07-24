@@ -1,37 +1,44 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
 export default function Home() {
-  const [message, setMessage] = useState("جاري الاتصال...");
+  const router = useRouter();
 
   useEffect(() => {
-    async function testConnection() {
-      const { error } = await supabase
-        .from("students")
-        .select("*")
-        .limit(1);
+    async function checkUser() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
-      if (error) {
-        if (error.code === "PGRST205" || error.message.includes("students")) {
-          setMessage("✅ تم الاتصال بـ Supabase بنجاح (جدول students لم يتم إنشاؤه بعد)");
-        } else {
-          setMessage(`❌ ${error.message}`);
-        }
+      // لو مش مسجل دخول
+      if (!user) {
+        router.replace("/login");
+        return;
+      }
+
+      // نتأكد هل هو أدمن
+      const { data: admin } = await supabase
+        .from("admins")
+        .select("id")
+        .eq("auth_id", user.id)
+        .single();
+
+      if (admin) {
+        router.replace("/admin");
       } else {
-        setMessage("✅ تم الاتصال بقاعدة البيانات بنجاح");
+        router.replace("/dashboard");
       }
     }
 
-    testConnection();
-  }, []);
+    checkUser();
+  }, [router]);
 
   return (
     <main className="flex min-h-screen items-center justify-center">
-      <h1 className="text-3xl font-bold text-blue-600">
-        {message}
-      </h1>
+      <p className="text-xl">جارٍ التحويل...</p>
     </main>
   );
 }
