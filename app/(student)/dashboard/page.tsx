@@ -20,13 +20,14 @@ export default function Dashboard() {
 
     if (!user) return;
 
-    const { data } = await supabase
+    const result = await supabase
       .from("students")
       .select("*")
-      .eq("auth_id", user.id)
-      .single();
+      .eq("auth_id", user.id);
 
-    setStudent(data);
+    if (result.data && result.data.length > 0) {
+      setStudent(result.data[0]);
+    }
   }
 
   async function loadTopStudents() {
@@ -42,7 +43,13 @@ export default function Dashboard() {
   }
 
   if (!student) {
-    return <p className="p-8">جارٍ التحميل...</p>;
+    return (
+      <main className="p-8">
+        <h2 className="text-2xl font-bold">
+          جاري تحميل البيانات...
+        </h2>
+      </main>
+    );
   }
 
   return (
@@ -51,7 +58,6 @@ export default function Dashboard() {
       <h1 className="text-4xl font-bold mb-8">
         أهلاً {student.full_name} 👋
       </h1>
-
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 
@@ -65,7 +71,6 @@ export default function Dashboard() {
           </h2>
         </div>
 
-
         <div className="rounded-xl border bg-white p-6 shadow">
           <p className="text-gray-500">
             متوسط الدرجات
@@ -75,7 +80,6 @@ export default function Dashboard() {
             {student.average_score}%
           </h2>
         </div>
-
 
         <div className="rounded-xl border bg-white p-6 shadow">
           <p className="text-gray-500">
@@ -88,8 +92,6 @@ export default function Dashboard() {
         </div>
 
       </div>
-
-
 
       <div className="mt-10 rounded-xl border bg-white p-6 shadow">
 
@@ -109,14 +111,11 @@ export default function Dashboard() {
 
       </div>
 
-
-
       <div className="mt-10 rounded-xl border bg-white p-6 shadow">
 
         <h2 className="text-2xl font-bold mb-5">
           🏆 أفضل 10 طلاب
         </h2>
-
 
         {topStudents.length === 0 ? (
 
@@ -147,11 +146,9 @@ export default function Dashboard() {
 
                 </div>
 
-
                 <div className="text-xl font-bold text-green-600">
                   {student.average_score}%
                 </div>
-
 
               </div>
 
@@ -163,55 +160,32 @@ export default function Dashboard() {
 
       </div>
 
-
-
       <div className="mt-10 rounded-xl border bg-white p-6 shadow">
 
         <h2 className="text-2xl font-bold mb-5">
           📈 إحصائياتك
         </h2>
 
-
         <div className="space-y-3">
 
-
           <div className="flex justify-between border-b pb-2">
-            <span>
-              عدد الامتحانات
-            </span>
-
-            <span>
-              {student.total_exams}
-            </span>
+            <span>عدد الامتحانات</span>
+            <span>{student.total_exams}</span>
           </div>
 
-
           <div className="flex justify-between border-b pb-2">
-            <span>
-              متوسط الدرجات
-            </span>
-
-            <span>
-              {student.average_score}%
-            </span>
+            <span>متوسط الدرجات</span>
+            <span>{student.average_score}%</span>
           </div>
-
 
           <div className="flex justify-between">
-            <span>
-              ترتيبك على المنصة
-            </span>
-
-            <span>
-              #{student.rank}
-            </span>
+            <span>ترتيبك على المنصة</span>
+            <span>#{student.rank}</span>
           </div>
-
 
         </div>
 
       </div>
-
 
     </main>
   );
