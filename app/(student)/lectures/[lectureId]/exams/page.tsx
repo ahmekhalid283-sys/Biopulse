@@ -30,7 +30,8 @@ export default function LectureExamsPage() {
       .from("exams")
       .select("*")
       .eq("lecture_id", lectureId)
-      .eq("is_published", true);
+      .eq("is_published", true)
+      .order("created_at");
 
     setLoading(false);
 
@@ -43,39 +44,74 @@ export default function LectureExamsPage() {
   }
 
   if (loading) {
-    return <div className="p-8">جارٍ تحميل الامتحانات...</div>;
+    return (
+      <main className="max-w-5xl mx-auto p-10">
+        <h2 className="text-2xl font-bold">
+          جاري تحميل الامتحانات...
+        </h2>
+      </main>
+    );
   }
 
   return (
-    <main className="max-w-5xl mx-auto p-8">
-      <h1 className="text-4xl font-bold mb-8">
-        امتحانات المحاضرة
+    <main className="max-w-6xl mx-auto p-10">
+
+      <h1 className="text-4xl font-bold mb-2">
+        📝 امتحانات المحاضرة
       </h1>
 
+      <p className="text-gray-500 mb-8">
+        اختر الامتحان الذي تريد البدء فيه.
+      </p>
+
       {exams.length === 0 ? (
-        <div>لا توجد امتحانات.</div>
+        <div className="rounded-xl border border-dashed p-10 text-center text-gray-500">
+          لا توجد امتحانات متاحة حالياً.
+        </div>
       ) : (
-        <div className="space-y-5">
+        <div className="grid gap-6">
+
           {exams.map((exam) => (
             <div
               key={exam.id}
-              className="rounded-xl border bg-white p-6 flex justify-between items-center"
+              className="rounded-xl border bg-white p-6 shadow-sm"
             >
-              <div>
-                <h2 className="text-2xl font-bold">
-                  {exam.title}
-                </h2>
+              <div className="flex items-center justify-between">
 
-                <p>{exam.duration_minutes} دقيقة</p>
+                <div>
+
+                  <h2 className="text-2xl font-bold">
+                    {exam.title}
+                  </h2>
+
+                  <div className="mt-3 space-y-1 text-gray-600">
+
+                    <p>
+                      ⏱ المدة: {exam.duration_minutes} دقيقة
+                    </p>
+
+                    <p>
+                      🎯 الدرجة النهائية: {exam.total_score}
+                    </p>
+
+                    <p>
+                      {exam.is_free ? "🟢 مجاني" : "🔒 مدفوع"}
+                    </p>
+
+                  </div>
+
+                </div>
+
+                <Link href={`/exam/${exam.id}`}>
+                  <button className="rounded-lg bg-green-600 px-6 py-3 text-white hover:bg-green-700">
+                    🚀 بدء الامتحان
+                  </button>
+                </Link>
+
               </div>
-
-              <Link href={`/exam/${exam.id}`}>
-                <button className="rounded bg-green-600 px-6 py-3 text-white">
-                  بدء الامتحان
-                </button>
-              </Link>
             </div>
           ))}
+
         </div>
       )}
     </main>

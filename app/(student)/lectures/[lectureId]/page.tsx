@@ -112,11 +112,23 @@ export default function LecturePage() {
             </a>
           )}
 
-          <Link href={`/lectures/${lecture.id}/exams`}>
-            <Button className="w-full">
-              📝 دخول الامتحان
-            </Button>
-          </Link>
+          <div className="rounded-xl border bg-white p-6">
+
+            <h2 className="text-2xl font-bold mb-4">
+              📝 الامتحان
+            </h2>
+
+            <p className="text-gray-500 mb-6">
+              بعد الانتهاء من مشاهدة المحاضرة يمكنك الدخول إلى الامتحان.
+            </p>
+
+            <Link href={`/lectures/${lecture.id}/exams`}>
+              <Button className="w-full h-12 text-lg">
+                🚀 الذهاب إلى الامتحانات
+              </Button>
+            </Link>
+
+          </div>
 
         </CardContent>
       </Card>

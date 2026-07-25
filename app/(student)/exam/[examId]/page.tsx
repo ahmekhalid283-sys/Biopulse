@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 
@@ -18,7 +18,7 @@ type Question = {
 
 export default function ExamPage() {
   const { examId } = useParams<{ examId: string }>();
-
+  const router = useRouter();
   const [questions, setQuestions] = useState<Question[]>([]);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [score, setScore] = useState<number | null>(null);
@@ -208,11 +208,10 @@ export default function ExamPage() {
     }
 
     setSubmitting(false);
-    setScore(calculatedScore);
 
-    alert(
-      `✅ انتهى الامتحان\n\nدرجتك: ${calculatedScore}/${total}\nالنسبة: ${percentage.toFixed(2)}%`
-    );
+  router.push(
+    `/results?exam=${examId}&score=${calculatedScore}&total=${total}&percentage=${percentage.toFixed(2)}`
+  );
   }
 
   if (loading) {

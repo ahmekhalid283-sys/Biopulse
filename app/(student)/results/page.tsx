@@ -1,55 +1,62 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 
 export default function ResultsPage() {
-  const [results, setResults] = useState<any[]>([]);
+  const params = useSearchParams();
 
-  useEffect(() => {
-    loadResults();
-  }, []);
-
-  async function loadResults() {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) return;
-
-    const { data: student } = await supabase
-      .from("students")
-      .select("id")
-      .eq("auth_id", user.id)
-      .single();
-
-    if (!student) return;
-
-    const { data } = await supabase
-      .from("exam_attempts")
-      .select("*")
-      .eq("student_id", student.id)
-      .order("created_at", { ascending: false });
-
-    setResults(data || []);
-  }
+  const score = params.get("score");
+  const total = params.get("total");
+  const percentage = params.get("percentage");
 
   return (
-    <main className="max-w-4xl mx-auto p-8">
-      <h1 className="text-3xl font-bold mb-8">نتائجي</h1>
+    <main className="max-w-3xl mx-auto p-10">
 
-      <div className="space-y-4">
-        {results.map((r) => (
-          <div
-            key={r.id}
-            className="rounded-xl border p-5 bg-white shadow"
-          >
-            <p><b>الدرجة:</b> {r.score}/{r.total}</p>
-            <p><b>النسبة:</b> {Number(r.percentage).toFixed(2)}%</p>
-            <p><b>التاريخ:</b> {new Date(r.created_at).toLocaleString("ar-EG")}</p>
+      <div className="rounded-2xl border bg-white p-10 shadow">
+
+        <h1 className="text-center text-4xl font-bold text-green-600">
+          🎉 تم إنهاء الامتحان
+        </h1>
+
+        <div className="mt-10 space-y-5">
+
+          <div className="flex justify-between border-b pb-3">
+            <span>الدرجة</span>
+            <span className="font-bold">
+              {score} / {total}
+            </span>
           </div>
-        ))}
+
+          <div className="flex justify-between border-b pb-3">
+            <span>النسبة المئوية</span>
+            <span className="font-bold text-blue-600">
+              {percentage}%
+            </span>
+          </div>
+
+        </div>
+
+        <div className="mt-10 flex gap-4">
+
+          <Link
+            href="/dashboard"
+            className="flex-1 rounded-lg bg-blue-600 py-3 text-center text-white"
+          >
+            العودة للوحة الطالب
+          </Link>
+
+          <Link
+            href="/chapters"
+            className="flex-1 rounded-lg border py-3 text-center"
+          >
+            العودة للفصول
+          </Link>
+
+        </div>
+
       </div>
+
     </main>
   );
 }
