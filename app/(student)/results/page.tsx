@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 
-export default function ResultsPage() {
+function ResultsContent() {
   const params = useSearchParams();
 
   const score = params.get("score");
@@ -12,7 +13,6 @@ export default function ResultsPage() {
 
   return (
     <main className="max-w-3xl mx-auto p-10">
-
       <div className="rounded-2xl border bg-white p-10 shadow">
 
         <h1 className="text-center text-4xl font-bold text-green-600">
@@ -56,7 +56,14 @@ export default function ResultsPage() {
         </div>
 
       </div>
-
     </main>
+  );
+}
+
+export default function ResultsPage() {
+  return (
+    <Suspense fallback={<div className="p-10">جارٍ التحميل...</div>}>
+      <ResultsContent />
+    </Suspense>
   );
 }
