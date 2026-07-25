@@ -66,13 +66,22 @@ export default function AdminLecturesPage() {
 
     if (!ok) return;
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("lectures")
       .delete()
-      .eq("id", id);
+      .eq("id", id)
+      .select();
+
+    console.log("Deleted:", data);
+    console.log("Error:", error);
 
     if (error) {
       alert(error.message);
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      alert("لم يتم حذف أي محاضرة");
       return;
     }
 

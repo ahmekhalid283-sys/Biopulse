@@ -1,12 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect } from "react";
+import { supabase } from "@/lib/supabase";
 
 const links = [
   {
     href: "/admin",
     title: "📊 Dashboard",
+  },
+  {
+    href: "/admin/students",
+    title: "👨‍🎓 الطلاب",
   },
   {
     href: "/admin/chapters",
@@ -36,6 +42,45 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
+
+  useEffect(() => {
+    checkAdmin();
+  }, []);
+
+  async function checkAdmin() {
+    console.log("Start check admin");
+
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    console.log("User:", user);
+    console.log("User Error:", userError);
+
+    if (!user) {
+      console.log("No user");
+      router.replace("/login");
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("admins")
+      .select("*")
+      .eq("auth_id", user.id);
+
+    console.log("Admins:", data);
+    console.log("Admin Error:", error);
+
+    if (error || !data || data.length === 0) {
+      alert("غير مصرح لك بالدخول");
+      router.replace("/dashboard");
+      return;
+    }
+
+    console.log("Admin OK");
+  }
 
   return (
     <div className="min-h-screen flex bg-slate-100">
@@ -43,7 +88,7 @@ export default function AdminLayout({
       <aside className="w-72 bg-slate-900 text-white p-6">
 
         <h1 className="text-3xl font-bold mb-10">
-          BioPulse
+          BioPulse Admin
         </h1>
 
         <div className="space-y-2">
@@ -55,7 +100,7 @@ export default function AdminLayout({
               href={item.href}
               className={`block rounded-lg px-4 py-3 transition ${
                 pathname === item.href
-                  ? "bg-blue-600"
+                  ? "bg-blue-600 text-white"
                   : "hover:bg-slate-800"
               }`}
             >
@@ -68,7 +113,7 @@ export default function AdminLayout({
 
       </aside>
 
-      <main className="flex-1 p-8">
+      <main className="flex-1 p-8 overflow-y-auto">
         {children}
       </main>
 

@@ -20,13 +20,24 @@ export default function Dashboard() {
 
     if (!user) return;
 
-    const result = await supabase
+    const { data, error } = await supabase  
       .from("students")
-      .select("*")
-      .eq("auth_id", user.id);
+      .select(`
+        *,
+        exam_attempts(
+          id,
+          score,
+          total,
+          percentage,
+          created_at,
+          exams(title)
+        )
+      `)
+      .eq("auth_id", user.id)
+      .single();
 
-    if (result.data && result.data.length > 0) {
-      setStudent(result.data[0]);
+    if (!error && data) {
+      setStudent(data);
     }
   }
 
@@ -42,6 +53,8 @@ export default function Dashboard() {
     }
   }
 
+
+
   if (!student) {
     return (
       <main className="p-8">
@@ -51,6 +64,18 @@ export default function Dashboard() {
       </main>
     );
   }
+
+  const attempts = student.exam_attempts ?? [];
+
+  const lastFive = [...attempts]
+    .sort(
+      (a: any, b: any) =>
+        new Date(b.created_at).getTime() -
+        new Date(a.created_at).getTime()
+    )
+    .slice(0, 5);
+
+
 
   return (
     <main className="max-w-6xl mx-auto p-8">
@@ -186,6 +211,64 @@ export default function Dashboard() {
         </div>
 
       </div>
+
+      <div className="mt-10 rounded-xl border bg-white p-6 shadow">
+
+        <h2 className="text-2xl font-bold mb-5">
+          📝 آخر الامتحانات
+        </h2>
+
+        {lastFive.length === 0 ? (
+
+          <p className="text-gray-500">
+            لم تقم بحل أي امتحان حتى الآن.
+          </p>
+
+        ) : (
+
+          <div className="space-y-4">
+
+            {lastFive.map((exam: any) => (
+
+              <div
+                key={exam.id}
+                className="flex items-center justify-between rounded-lg border p-4"
+              >
+
+                <div>
+
+                  <h3 className="font-bold">
+                    {exam.exams?.title}
+                  </h3>
+
+                  <p className="text-gray-500 text-sm">
+                    {new Date(exam.created_at).toLocaleDateString("ar-EG")}
+                  </p>
+
+                </div>
+
+                <div className="text-right">
+
+                  <p className="font-bold">
+                    {exam.score}/{exam.total}
+                  </p>
+
+                  <p className="text-green-600">
+                    {Number(exam.percentage).toFixed(2)}%
+                  </p>
+
+                </div>
+
+              </div>
+
+            ))}
+
+          </div>
+
+        )}
+
+      </div>
+
 
     </main>
   );
