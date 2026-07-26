@@ -25,9 +25,9 @@ export default function ExamPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [studentId, setStudentId] = useState("");
-  const [alreadySolved, setAlreadySolved] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
-  const [startTime] = useState(Date.now());
+  const [endTime, setEndTime] = useState(0);
+  const [startTime, setStartTime] = useState(0);
 
   useEffect(() => {
     if (examId) {
@@ -37,21 +37,24 @@ export default function ExamPage() {
   }, [examId]);
 
   useEffect(() => {
-    if (timeLeft <= 0) return;
+    if (!endTime) return;
 
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          submitExam();
-          return 0;
-        }
-        return prev - 1;
-      });
+    const interval = setInterval(() => {
+      const remaining = Math.max(
+        0,
+        Math.floor((endTime - Date.now()) / 1000)
+      );
+
+      setTimeLeft(remaining);
+
+      if (remaining <= 0) {
+        clearInterval(interval);
+        submitExam();
+      }
     }, 1000);
 
-    return () => clearInterval(timer);
-  }, [timeLeft]);
+    return () => clearInterval(interval);
+  }, [endTime]);
 
   async function getStudent() {
     const {
@@ -86,20 +89,26 @@ export default function ExamPage() {
 
     setStudentId(data.id);
 
-    const { data: attempt } = await supabase
-      .from("exam_attempts")
-      .select("id")
-      .eq("student_id", data.id)
-      .eq("exam_id", examId)
-      .maybeSingle();
-
-    if (attempt) {
-      setAlreadySolved(true);
-    }
   }
 
+
+
   async function loadQuestions() {
-    const { data, error } = await supabase
+    // تحميل بيانات الامتحان
+    const { data: exam, error: examError } = await supabase
+      .from("exams")
+      .select("duration_minutes")
+      .eq("id", examId)
+      .single();
+
+    if (examError) {
+      alert(examError.message);
+      setLoading(false);
+      return;
+    }
+
+    // تحميل الأسئلة
+    const { data: questionsData, error } = await supabase
       .from("questions")
       .select("*")
       .eq("exam_id", examId)
@@ -111,8 +120,38 @@ export default function ExamPage() {
       return;
     }
 
-    setQuestions(data || []);
-    setTimeLeft(60 * 30);
+    setQuestions(questionsData || []);
+
+    const duration = (exam.duration_minutes ?? 30) * 60;
+
+    const endKey = `exam_end_${examId}`;
+    const startKey = `exam_start_${examId}`;
+
+    const savedEnd = localStorage.getItem(endKey);
+    const savedStart = localStorage.getItem(startKey);
+
+    if (savedEnd && savedStart) {
+      setEndTime(Number(savedEnd));
+      setStartTime(Number(savedStart));
+
+      setTimeLeft(
+        Math.max(
+          0,
+          Math.floor((Number(savedEnd) - Date.now()) / 1000)
+        )
+      );
+    } else {
+      const start = Date.now();
+      const end = start + duration * 1000;
+
+  localStorage.setItem(startKey, start.toString());
+  localStorage.setItem(endKey, end.toString());
+
+  setStartTime(start);
+  setEndTime(end);
+  setTimeLeft(duration);
+}
+
     setLoading(false);
   }
 
@@ -131,7 +170,10 @@ export default function ExamPage() {
       return;
     }
 
-    if (Object.keys(answers).length !== questions.length) {
+    if (
+      Object.keys(answers).length !== questions.length &&
+      timeLeft > 0
+    ) {
       alert("أجب عن جميع الأسئلة أولاً");
       return;
     }
@@ -153,7 +195,6 @@ export default function ExamPage() {
 
     const percentage = (calculatedScore / total) * 100;
     const duration = Math.floor((Date.now() - startTime) / 1000);
-
     // 1. حفظ محاولة الامتحان
     const { error } = await supabase.from("exam_attempts").insert({
       student_id: studentId,
@@ -162,7 +203,7 @@ export default function ExamPage() {
       total,
       percentage,
       duration_seconds: duration,
-      started_at: new Date(),
+      started_at: new Date(startTime),
       finished_at: new Date(),
     });
 
@@ -209,6 +250,8 @@ export default function ExamPage() {
 
     setSubmitting(false);
 
+    localStorage.removeItem(`exam_end_${examId}`);
+    localStorage.removeItem(`exam_start_${examId}`);
   router.push(
     `/results?exam=${examId}&score=${calculatedScore}&total=${total}&percentage=${percentage.toFixed(2)}`
   );
@@ -217,19 +260,7 @@ export default function ExamPage() {
   if (loading) {
     return <p className="p-10 text-center">جارٍ تحميل الامتحان...</p>;
   }
-
-  if (alreadySolved) {
-    return (
-      <main className="max-w-xl mx-auto p-10">
-        <div className="rounded-xl border bg-red-100 p-8 text-center">
-          <h1 className="text-3xl font-bold text-red-600">
-            لقد قمت بحل هذا الامتحان من قبل
-          </h1>
-          <p className="mt-4 text-lg">لا يمكن إعادة الامتحان مرة أخرى.</p>
-        </div>
-      </main>
-    );
-  }
+  
 
   return (
     <main className="max-w-4xl mx-auto p-8">
