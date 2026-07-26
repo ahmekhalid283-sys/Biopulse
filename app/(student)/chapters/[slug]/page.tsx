@@ -26,18 +26,20 @@ type Lecture = {
 };
 
 export default function ChapterPage() {
-  const params = useParams();
+  const { slug } = useParams<{ slug: string }>();
 
   const [chapter, setChapter] = useState<Chapter | null>(null);
   const [lectures, setLectures] = useState<Lecture[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadData();
-  }, []);
+    if (slug) {
+      loadData();
+    }
+  }, [slug]);
 
   async function loadData() {
-    const slug = params.slug as string;
+    console.log("slug =", slug);
 
     const { data: chapterData, error: chapterError } = await supabase
       .from("chapters")
@@ -46,6 +48,7 @@ export default function ChapterPage() {
       .single();
 
     if (chapterError || !chapterData) {
+      console.log(chapterError);
       setLoading(false);
       return;
     }
@@ -59,7 +62,33 @@ export default function ChapterPage() {
       .eq("is_published", true)
       .order("lecture_order");
 
-    setLectures(lecturesData || []);
+    console.log("lectures =", lecturesData);
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (user && lecturesData) {
+      const { data: student } = await supabase
+        .from("students")
+        .select("subscription_end")
+        .eq("auth_id", user.id)
+        .single();
+
+      const hasSubscription =
+        !!student?.subscription_end &&
+        new Date(student.subscription_end) > new Date();
+
+      setLectures(
+        lecturesData.filter(
+          (lecture) => lecture.is_free || hasSubscription
+        )
+      );
+    } else {
+      setLectures(
+        (lecturesData || []).filter((lecture) => lecture.is_free)
+      );
+    }
 
     setLoading(false);
   }
@@ -141,9 +170,11 @@ export default function ChapterPage() {
                   </a>
                 )}
 
-                <Button>
-                  📝 الامتحان
-                </Button>
+                <Link href={`/lectures/${lecture.id}/exams`}>
+                  <Button>
+                    📝 الامتحان
+                  </Button>
+                </Link>
 
               </div>
 

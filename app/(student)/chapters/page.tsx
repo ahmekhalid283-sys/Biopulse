@@ -30,10 +30,12 @@ export default function ChaptersPage() {
 
     if (!error && data) {
       setChapters(data);
+      console.log(data);
     }
 
     setLoading(false);
   }
+  console.log("chapters =", chapters);
 
   if (loading) {
     return (

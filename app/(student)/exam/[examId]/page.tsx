@@ -188,10 +188,13 @@ export default function ExamPage() {
       }
     });
 
-    const total = questions.reduce(
-      (sum: number, q: Question) => sum + q.marks,
-      0
-    );
+    const { data: examData } = await supabase
+      .from("exams")
+      .select("total_score")
+      .eq("id", examId)
+      .single();
+
+const total = examData?.total_score ?? calculatedScore;
 
     const percentage = (calculatedScore / total) * 100;
     const duration = Math.floor((Date.now() - startTime) / 1000);
