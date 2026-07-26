@@ -40,19 +40,29 @@ export default function RegisterPage() {
       return;
     }
 
+    if (!data.user) {
+      alert("حدث خطأ أثناء إنشاء الحساب");
+      return;
+    }
+
     const { error: dbError } = await supabase.from("students").insert({
+      auth_id: data.user.id,
       full_name: name,
       phone: phone,
       password_hash: "supabase_auth",
+      total_exams: 0,
+      average_score: 0,
+      rank: 0,
     });
 
     if (dbError) {
-    console.log(dbError);
-    alert(dbError.message);
-    return;
-  }
+      console.log(dbError);
+      alert(dbError.message);
+      return;
+    }
 
     alert("تم إنشاء الحساب بنجاح 🎉");
+    window.location.href = "/login";
   }
 
 
