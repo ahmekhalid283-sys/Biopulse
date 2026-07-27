@@ -41,14 +41,16 @@ export default function ChapterPage() {
   async function loadData() {
     console.log("slug =", slug);
 
-    const { data: chapterData, error: chapterError } = await supabase
+    const { data: chapterData, error } = await supabase
       .from("chapters")
       .select("*")
       .eq("slug", slug)
-      .single();
+      .maybeSingle();
 
-    if (chapterError || !chapterData) {
-      console.log(chapterError);
+    console.log("chapterData =", chapterData);
+    console.log("error =", error);
+
+    if (!chapterData) {
       setLoading(false);
       return;
     }
@@ -62,36 +64,11 @@ export default function ChapterPage() {
       .eq("is_published", true)
       .order("lecture_order");
 
-    console.log("lectures =", lecturesData);
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (user && lecturesData) {
-      const { data: student } = await supabase
-        .from("students")
-        .select("subscription_end")
-        .eq("auth_id", user.id)
-        .single();
-
-      const hasSubscription =
-        !!student?.subscription_end &&
-        new Date(student.subscription_end) > new Date();
-
-      setLectures(
-        lecturesData.filter(
-          (lecture) => lecture.is_free || hasSubscription
-        )
-      );
-    } else {
-      setLectures(
-        (lecturesData || []).filter((lecture) => lecture.is_free)
-      );
-    }
+    setLectures(lecturesData || []);
 
     setLoading(false);
   }
+
 
   if (loading) {
     return (
