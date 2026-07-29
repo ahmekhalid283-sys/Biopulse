@@ -30,17 +30,6 @@ export default function RegisterForm({ onSwitch }: Props) {
 
         const email = `${phone}@biopulse.app`;
 
-        const { data: exists } = await supabase
-          .from("students")
-          .select("id")
-          .eq("phone", phone)
-          .maybeSingle();
-
-        if (exists) {
-          alert("رقم الهاتف مستخدم بالفعل");
-          return;
-        }
-
         const { data, error } = await supabase.auth.signUp({
           email,
           password,

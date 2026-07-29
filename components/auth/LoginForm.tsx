@@ -16,25 +16,34 @@ export default function LoginForm({ onSwitch }: Props) {
     const [loading, setLoading] = useState(false);
 
     const login = async () => {
-    try {
+      try {
         setLoading(true);
 
-        const email = `${phone}@biopulse.app`;
+        const { data: student, error: studentError } = await supabase
+          .from("students")
+          .select("email")
+          .eq("phone", phone)
+          .single();
+
+        if (studentError || !student) {
+          alert("رقم الهاتف غير موجود");
+          return;
+        }
 
         const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+          email: student.email,
+          password,
         });
 
         if (error) {
-        alert("رقم الهاتف أو كلمة المرور غير صحيحة");
-        return;
+          alert("رقم الهاتف أو كلمة المرور غير صحيحة");
+          return;
         }
 
         router.replace("/dashboard");
-    } finally {
+      } finally {
         setLoading(false);
-    }
+      }
     };
  
     return (
