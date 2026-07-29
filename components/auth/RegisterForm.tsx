@@ -20,13 +20,15 @@ export default function RegisterForm({ onSwitch }: Props) {
     const [loading, setLoading] = useState(false);
 
     const register = async () => {
-    if (password !== confirmPassword) {
+      if (password !== confirmPassword) {
         alert("كلمتا المرور غير متطابقتين");
         return;
-    }
+      }
 
-    try {
+      try {
         setLoading(true);
+
+        const email = `${phone}@biopulse.app`;
 
         const { data: exists } = await supabase
           .from("students")
@@ -39,26 +41,24 @@ export default function RegisterForm({ onSwitch }: Props) {
           return;
         }
 
-        const email = `${phone}@biopulse.app`;
-
         const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
+          email,
+          password,
         });
 
         if (error) {
-        alert(error.message);
-        return;
+          alert(error.message);
+          return;
         }
 
         if (!data.user) {
-        alert("فشل إنشاء المستخدم");
-        return;
+          alert("فشل إنشاء المستخدم");
+          return;
         }
 
         const { error: studentError } = await supabase
-        .from("students")
-        .insert({
+          .from("students")
+          .insert({
             auth_id: data.user.id,
             email,
             phone,
@@ -66,18 +66,17 @@ export default function RegisterForm({ onSwitch }: Props) {
             governorate,
             school,
             grade,
-        });
+          });
 
         if (studentError) {
-        alert(studentError.message);
-        return;
+          alert(studentError.message);
+          return;
         }
 
         router.replace("/dashboard");
-
-    } finally {
+      } finally {
         setLoading(false);
-    }
+      }
     };
 
   return (
