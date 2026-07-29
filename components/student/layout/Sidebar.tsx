@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
   BookOpen,
@@ -12,6 +12,7 @@ import { supabase } from "@/lib/supabase";
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
 
   const links = [
     {
@@ -31,10 +32,10 @@ export default function Sidebar() {
     },
   ];
 
-  async function handleLogout() {
+  const logout = async () => {
     await supabase.auth.signOut();
-    window.location.href = "/login";
-  }
+    router.replace("/auth");
+  };
 
   return (
     <aside className="w-72 bg-slate-950 border-r border-slate-800 min-h-screen p-6 hidden lg:flex flex-col">
@@ -72,8 +73,8 @@ export default function Sidebar() {
       </nav>
 
       <button
-        onClick={handleLogout}
-        className="mt-8 flex items-center justify-center gap-2 rounded-xl bg-red-600 hover:bg-red-700 transition text-white py-3"
+        onClick={logout}
+        className="mt-8 flex items-center justify-center gap-2 rounded-xl bg-red-500 py-3 text-white hover:bg-red-600 transition"
       >
         <LogOut size={18} />
         تسجيل الخروج

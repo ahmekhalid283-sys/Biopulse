@@ -189,7 +189,7 @@ export default function DashboardPage() {
         } = await supabase.auth.getUser();
 
         if (!user) {
-          router.replace("/login");
+          router.replace("/auth");
           return;
         }
 
@@ -201,7 +201,7 @@ export default function DashboardPage() {
             .single();
 
         if (studentError || !studentData) {
-          router.replace("/login");
+          router.replace("/auth");
           return;
         }
 
