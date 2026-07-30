@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import CountUp from "react-countup";
 import { supabase } from "@/lib/supabase";
 import Sidebar from "@/components/student/layout/Sidebar";
 import ChapterCard from "@/components/student/ChapterCard";
@@ -244,7 +245,12 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-950 text-white">
-        <Sidebar />
+        <Sidebar
+          studentName="Loading..."
+          points={0}
+          streak={0}
+        />
+
         <main className="flex-1 p-4 lg:p-8 lg:mr-72">
           <div className="space-y-8 animate-[pulse_2s_infinite]">
             <div className="grid lg:grid-cols-3 gap-6">
@@ -276,12 +282,27 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen flex bg-slate-950 text-white">
-      <Sidebar />
+    <div className="relative min-h-screen flex bg-slate-950 text-white overflow-hidden">
+
+      {/* Background */}
+      <div className="absolute inset-0 -z-10">
+        <img
+          src="/images/background.jpg"
+          className="h-full w-full object-cover opacity-10"
+          alt=""
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-slate-950/30 via-slate-950/80 to-slate-950" />
+      </div>
+
+      <Sidebar
+        studentName={student.full_name}
+        points={points}
+        streak={streak}
+      />
 
       <div className="flex-1 flex flex-col lg:mr-72">
-        <main className="flex-1 p-4 lg:p-8">
-          <div className="space-y-8">
+        <main className="flex-1 p-8 lg:p-12">
+          <div className="mx-auto max-w-7xl space-y-10">
             {error && (
               <div className="rounded-xl bg-red-500/20 border border-red-500 p-4 text-red-300 flex items-center justify-between">
                 <span>{error}</span>
@@ -313,14 +334,30 @@ export default function DashboardPage() {
 
             <div className="grid lg:grid-cols-3 gap-6">
               <FadeIn className="lg:col-span-2 rounded-3xl bg-gradient-to-r from-cyan-900 via-slate-900 to-slate-950 border border-cyan-500/20 p-8">
-                <h1 className="text-5xl font-bold">
-                  مرحباً
-                  <span className="text-cyan-400"> {student.full_name}</span>
+                <h1 className="text-5xl font-black leading-tight">
+                  أهلاً بك،
+                  <span className="block mt-2 text-cyan-400">
+                    {student.full_name}
+                  </span>
                 </h1>
 
-                <p className="mt-5 text-gray-300 text-lg">
-                  كل اختبار خطوة نحو التميز
+                <p className="mt-6 text-slate-300 text-lg leading-8">
+                  استمر في حل الامتحانات وجمع النقاط للوصول إلى قمة ترتيب BioPulse.
                 </p>
+
+                <div className="mt-8 flex gap-4">
+                  <Link href="/chapters">
+                    <button className="rounded-xl bg-cyan-500 hover:bg-cyan-600 px-6 py-3 font-bold transition">
+                      ابدأ التعلم
+                    </button>
+                  </Link>
+
+                  <Link href="/results">
+                    <button className="rounded-xl border border-cyan-500 text-cyan-400 px-6 py-3 font-bold hover:bg-cyan-500/10 transition">
+                      نتائجي
+                    </button>
+                  </Link>
+                </div>
 
                 <div className="mt-8 h-3 rounded-full bg-slate-800 overflow-hidden">
                   <div
@@ -330,29 +367,29 @@ export default function DashboardPage() {
                 </div>
 
                 <p className="mt-3 text-cyan-400">
-                  نسبة الإنجاز {progress}%
+                  نسبة الإنجاز <CountUp end={progress} decimals={1} duration={2} />%
                 </p>
               </FadeIn>
 
               <FadeIn delay={0.1} className="space-y-4">
-                <div className="rounded-2xl bg-slate-900 border border-cyan-500/20 p-5">
-                  <p className="text-gray-400">النقاط الكلية</p>
-                  <h2 className="text-3xl font-bold text-cyan-400">
-                    {points}
+                <div className="rounded-3xl border border-cyan-500/20 bg-[#081321]/90 backdrop-blur-xl p-6 transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_0_30px_rgba(34,211,238,0.25)]">
+                  <p className="text-slate-400">النقاط</p>
+                  <h2 className="mt-2 text-4xl font-bold text-cyan-400">
+                    <CountUp end={points} duration={2} />
                   </h2>
                 </div>
 
-                <div className="rounded-2xl bg-slate-900 border border-orange-500/20 p-5">
-                  <p className="text-gray-400">أعلى سلسلة</p>
-                  <h2 className="text-3xl font-bold text-orange-400">
-                    {streak} أيام
+                <div className="rounded-3xl border border-orange-500/20 bg-[#081321]/90 backdrop-blur-xl p-6 transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_0_30px_rgba(251,146,60,0.25)]">
+                  <p className="text-slate-400">Streak</p>
+                  <h2 className="mt-2 text-4xl font-bold text-orange-400">
+                    <CountUp end={streak} duration={2} />
                   </h2>
                 </div>
 
-                <div className="rounded-2xl bg-slate-900 border border-pink-500/20 p-5">
-                  <p className="text-gray-400">الاختبارات المنجزة</p>
-                  <h2 className="text-3xl font-bold text-pink-400">
-                    {solvedExams} / {totalLectures}
+                <div className="rounded-3xl border border-pink-500/20 bg-[#081321]/90 backdrop-blur-xl p-6 transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_0_30px_rgba(236,72,153,0.25)]">
+                  <p className="text-slate-400">الامتحانات</p>
+                  <h2 className="mt-2 text-4xl font-bold text-pink-400">
+                    <CountUp end={solvedExams} duration={2} />
                   </h2>
                 </div>
               </FadeIn>
@@ -410,7 +447,7 @@ export default function DashboardPage() {
                           </div>
 
                           <div className="text-xl font-bold text-green-400">
-                            {topStudent.average_score ?? 0}%
+                            <CountUp end={topStudent.average_score ?? 0} decimals={1} duration={2} />%
                           </div>
                         </div>
                       );
@@ -431,17 +468,23 @@ export default function DashboardPage() {
                 <div className="space-y-5">
                   <div className="flex justify-between border-b border-slate-700 pb-2">
                     <span>عدد الامتحانات</span>
-                    <span>{student.total_exams}</span>
+                    <span><CountUp end={student.total_exams} duration={2} /></span>
                   </div>
 
                   <div className="flex justify-between border-b border-slate-700 pb-2">
                     <span>متوسط الدرجات</span>
-                    <span>{student.average_score ?? 0}%</span>
+                    <span>
+                      <CountUp
+                        end={student.average_score ?? 0}
+                        decimals={1}
+                        duration={2}
+                      />%
+                    </span>
                   </div>
 
                   <div className="flex justify-between border-b border-slate-700 pb-2">
                     <span>النقاط</span>
-                    <span>{points}</span>
+                    <span><CountUp end={points} duration={2} /></span>
                   </div>
 
                   <div className="flex justify-between">
@@ -490,7 +533,7 @@ export default function DashboardPage() {
                             {exam.score}/{exam.total}
                           </p>
                           <p className="text-green-400">
-                            {Number(exam.percentage ?? 0).toFixed(2)}%
+                            <CountUp end={Number(exam.percentage ?? 0)} decimals={2} duration={2} />%
                           </p>
                         </div>
                       </div>

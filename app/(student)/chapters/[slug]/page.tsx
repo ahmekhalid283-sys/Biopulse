@@ -3,10 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-
+import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabase";
-
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
 type Chapter = {
@@ -19,10 +17,8 @@ type Lecture = {
   title: string;
   duration: string | null;
   lecture_order: number;
-  youtube_url: string | null;
   pdf_url: string | null;
   is_free: boolean;
-  is_published: boolean;
 };
 
 export default function ChapterPage() {
@@ -33,22 +29,15 @@ export default function ChapterPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (slug) {
-      loadData();
-    }
+    if (slug) loadData();
   }, [slug]);
 
   async function loadData() {
-    console.log("slug =", slug);
-
-    const { data: chapterData, error } = await supabase
+    const { data: chapterData } = await supabase
       .from("chapters")
       .select("*")
       .eq("slug", slug)
       .maybeSingle();
-
-    console.log("chapterData =", chapterData);
-    console.log("error =", error);
 
     if (!chapterData) {
       setLoading(false);
@@ -65,15 +54,13 @@ export default function ChapterPage() {
       .order("lecture_order");
 
     setLectures(lecturesData || []);
-
     setLoading(false);
   }
 
-
   if (loading) {
     return (
-      <main className="p-8">
-        <h2 className="text-2xl font-bold">
+      <main className="min-h-screen bg-slate-950 flex items-center justify-center text-white">
+        <h2 className="text-3xl font-bold animate-pulse">
           جاري تحميل المحاضرات...
         </h2>
       </main>
@@ -82,95 +69,124 @@ export default function ChapterPage() {
 
   if (!chapter) {
     return (
-      <main className="p-8">
-        <h2 className="text-2xl font-bold text-red-600">
-          الفصل غير موجود
-        </h2>
+      <main className="min-h-screen bg-slate-950 flex items-center justify-center text-red-400">
+        الفصل غير موجود
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-slate-100 p-8">
-
-      <h1 className="text-4xl font-bold text-blue-600 mb-2">
-        {chapter.title}
-      </h1>
-
-      <p className="text-gray-500 mb-8">
-        جميع المحاضرات الخاصة بالفصل
-      </p>
-
-      <div className="space-y-6">
-
-        {lectures.map((lecture) => (
-
-          <Card key={lecture.id}>
-
-            <CardHeader>
-              <CardTitle>
-                {lecture.title}
-              </CardTitle>
-            </CardHeader>
-
-            <CardContent className="space-y-4">
-
-              <p>
-                ⏱ {lecture.duration || "-"}
-              </p>
-
-              <p>
-                الحالة :
-                {" "}
-                <span className="font-bold text-green-600">
-                  منشورة
-                </span>
-              </p>
-
-              <div className="flex gap-3 flex-wrap">
-
-                <Link href={`/lectures/${lecture.id}`}>
-                  <Button>
-                    🎥 مشاهدة
-                  </Button>
-                </Link>
-
-                {lecture.pdf_url && (
-                  <a
-                    href={lecture.pdf_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <Button>
-                      📄 PDF
-                    </Button>
-                  </a>
-                )}
-
-                <Link href={`/lectures/${lecture.id}/exams`}>
-                  <Button>
-                    📝 الامتحان
-                  </Button>
-                </Link>
-
-              </div>
-
-            </CardContent>
-
-          </Card>
-
-        ))}
-
-        {lectures.length === 0 && (
-          <Card>
-            <CardContent className="p-6 text-center">
-              لا توجد محاضرات لهذا الفصل.
-            </CardContent>
-          </Card>
-        )}
-
+    <main className="relative min-h-screen bg-slate-950 text-white overflow-hidden">
+      <div className="absolute inset-0 -z-10">
+        <img
+          src="/images/background.jpg"
+          className="w-full h-full object-cover opacity-10"
+          alt=""
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-slate-950/20 via-slate-950/80 to-slate-950" />
       </div>
 
+      <div className="max-w-7xl mx-auto p-8 space-y-10">
+        <motion.div
+          initial={{ opacity: 0, y: -30 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="rounded-3xl bg-gradient-to-r from-cyan-900 via-slate-900 to-slate-950 border border-cyan-500/20 p-10"
+        >
+          <h1 className="text-5xl font-black text-cyan-400">
+            {chapter.title}
+          </h1>
+
+          <p className="mt-4 text-slate-300 text-lg">
+            جميع المحاضرات الخاصة بالفصل
+          </p>
+
+          <div className="mt-8 h-3 rounded-full bg-slate-800 overflow-hidden">
+            <div className="h-full bg-cyan-400 w-0" />
+          </div>
+        </motion.div>
+
+        <div className="grid gap-8 lg:grid-cols-2">
+          {lectures.map((lecture, index) => (
+            <motion.div
+              key={lecture.id}
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{
+                delay: index * 0.08,
+              }}
+              whileHover={{
+                y: -8,
+                scale: 1.02,
+              }}
+              className="
+              rounded-3xl
+              border
+              border-cyan-500/20
+              bg-[#081321]/90
+              backdrop-blur-xl
+              overflow-hidden
+              transition
+              duration-500
+              hover:shadow-[0_0_35px_rgba(34,211,238,.18)]
+              "
+            >
+              <div className="h-44 overflow-hidden">
+                <img
+                  src={`/images/chapters/${slug}.png`}
+                  className="w-full h-full object-cover transition duration-500 hover:scale-110"
+                  alt=""
+                  onError={(e) => {
+                    e.currentTarget.src =
+                      "/images/chapters/default.png";
+                  }}
+                />
+              </div>
+
+              <div className="p-6">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-2xl font-bold">
+                    🎥 {lecture.title}
+                  </h2>
+
+                  <span className="rounded-full bg-cyan-500/20 px-4 py-1 text-cyan-300">
+                    #{lecture.lecture_order}
+                  </span>
+                </div>
+
+                <div className="mt-5 flex gap-6 text-slate-300">
+                  <span>
+                    ⏱ {lecture.duration || "-"}
+                  </span>
+
+                  <span
+                    className={
+                      lecture.is_free
+                        ? "text-green-400"
+                        : "text-orange-400"
+                    }
+                  >
+                    {lecture.is_free
+                      ? "🆓 مجانية"
+                      : "🔒 مدفوعة"}
+                  </span>
+                </div>
+
+                <div className="mt-6 h-2 rounded-full bg-slate-700 overflow-hidden">
+                  <div className="bg-cyan-400 h-full w-0" />
+                </div>
+
+                <div className="mt-6">
+                  <Link href={`/lectures/${lecture.id}`}>
+                    <Button className="w-full h-12 text-lg bg-cyan-500 hover:bg-cyan-600 font-bold rounded-xl text-white">
+                      🚀 ابدأ المحاضرة
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </div>
     </main>
   );
 }
