@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { CheckCircle2, XCircle } from "lucide-react";
 
@@ -82,9 +83,17 @@ export default function ReviewPage() {
     <main className="min-h-screen bg-slate-950 text-white p-8">
       <div className="max-w-6xl mx-auto space-y-8">
 
-        <h1 className="text-5xl font-black text-cyan-400">
-          مراجعة الإجابات
-        </h1>
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-5xl font-black text-cyan-400">
+            مراجعة الإجابات
+          </h1>
+          <Link
+            href="/dashboard"
+            className="rounded-xl bg-slate-900 border border-cyan-500/30 px-6 py-3 font-bold hover:bg-slate-800 transition-all"
+          >
+            العودة للوحة التحكم
+          </Link>
+        </div>
 
         {questions.map((q, index) => {
           const answer = answers[q.id];
@@ -121,6 +130,7 @@ export default function ReviewPage() {
                 <img
                   src={q.image_url}
                   className="rounded-2xl mb-6"
+                  alt=""
                 />
               )}
 
@@ -136,16 +146,13 @@ export default function ReviewPage() {
                 return (
                   <div
                     key={key}
-                    className={`mb-3 rounded-xl border p-4
-
-                    ${
+                    className={`mb-3 rounded-xl border p-4 ${
                       isCorrect
                         ? "border-green-500 bg-green-500/10"
                         : isStudent
                         ? "border-red-500 bg-red-500/10"
                         : "border-slate-700"
-                    }
-                    `}
+                    }`}
                   >
                     <span className="font-bold mr-2">
                       {key})

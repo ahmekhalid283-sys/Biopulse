@@ -13,18 +13,16 @@ export default function Home() {
         data: { user },
       } = await supabase.auth.getUser();
 
-      // لو مش مسجل دخول
       if (!user) {
         router.replace("/login");
         return;
       }
 
-      // نتأكد هل هو أدمن
       const { data: admin } = await supabase
         .from("admins")
         .select("id")
         .eq("auth_id", user.id)
-        .single();
+        .maybeSingle();
 
       if (admin) {
         router.replace("/admin");
@@ -37,7 +35,7 @@ export default function Home() {
   }, [router]);
 
   return (
-    <main className="flex min-h-screen items-center justify-center">
+    <main className="flex min-h-screen items-center justify-center bg-slate-950 text-white">
       <p className="text-xl">جارٍ التحويل...</p>
     </main>
   );

@@ -306,7 +306,7 @@ export default function ExamPage() {
     localStorage.removeItem(`exam_start_${examId}`);
 
     router.push(
-      `/student/results?attemptId=${insertedAttempt.id}&exam=${examId}&score=${calculatedScore}&total=${total}&percentage=${percentage.toFixed(2)}`
+      `/results?attemptId=${insertedAttempt.id}&exam=${examId}&score=${calculatedScore}&total=${total}&percentage=${percentage.toFixed(2)}`
     );
   }
 
@@ -495,11 +495,11 @@ export default function ExamPage() {
                   ) : (
                     <Button
                       onClick={submitExam}
-                      disabled={submitting}
-                      className="rounded-xl bg-red-600 hover:bg-red-700 text-white px-8 font-bold shadow-[0_0_30px_rgba(255,0,0,.3)]"
+                      disabled={submitting || !studentId}
+                      className="rounded-xl bg-red-600 hover:bg-red-700 text-white px-8 font-bold shadow-[0_0_30px_rgba(255,0,0,.3)] disabled:opacity-50"
                     >
                       <CheckCircle2 className="w-5 h-5 ml-2" />
-                      {submitting ? "جاري الإرسال..." : "إنهاء وتسليم الاختبار"}
+                      {submitting ? "جاري الإرسال..." : !studentId ? "جاري تحميل بيانات الطالب..." : "إنهاء وتسليم الاختبار"}
                     </Button>
                   )}
                 </div>

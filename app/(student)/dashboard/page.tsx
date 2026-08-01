@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import CountUp from "react-countup";
@@ -91,8 +91,12 @@ const itemVariants = {
 };
 
 export default function DashboardPage() {
-  const router = useRouter();
+  console.count("Dashboard Render");
+  useEffect(() => {
+    console.log("Dashboard Mounted");
+  }, []);
 
+  const router = useRouter();
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [student, setStudent] = useState<Student | null>(null);
   const [recentExams, setRecentExams] = useState<RecentExam[]>([]);
@@ -102,7 +106,11 @@ export default function DashboardPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
 
-  const loadChapters = useCallback(async () => {
+  console.log("Student state", student);
+  console.log("Chapters state", chapters.length);
+  console.log("Recent Exams", recentExams.length);
+  console.log("Top Students", topStudents.length);
+  const loadChapters = async () => {
     const { data: chaptersData, error } = await supabase
       .from("chapters")
       .select("*")
@@ -129,9 +137,9 @@ export default function DashboardPage() {
     );
 
     setChapters(chaptersWithCount);
-  }, []);
+  };
 
-  const loadRecentExams = useCallback(async (studentId: string) => {
+  const loadRecentExams = async (studentId: string) => {
     const { data, error } = await supabase
       .from("exam_attempts")
       .select(`
@@ -153,9 +161,9 @@ export default function DashboardPage() {
     if (error) throw error;
 
     setRecentExams(data as unknown as RecentExam[]);
-  }, []);
+  };
 
-  const loadTopStudents = useCallback(async () => {
+  const loadTopStudents = async () => {
     const { data, error } = await supabase
       .from("students")
       .select(`
@@ -172,61 +180,64 @@ export default function DashboardPage() {
     if (error) throw error;
 
     setTopStudents((data ?? []) as TopStudent[]);
-  }, []);
+  };
 
-  const init = useCallback(
-    async (isRefresh = false) => {
-      try {
-        if (isRefresh) {
-          setRefreshing(true);
-        } else {
-          setLoading(true);
-        }
-
-        setError("");
-
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-
-        if (!user) {
-          router.replace("/auth");
-          return;
-        }
-
-        const { data: studentData, error: studentError } =
-          await supabase
-            .from("students")
-            .select("*")
-            .eq("auth_id", user.id)
-            .single();
-
-        if (studentError || !studentData) {
-          router.replace("/auth");
-          return;
-        }
-
-        setStudent(studentData);
-
-        await Promise.all([
-          loadChapters(),
-          loadRecentExams(studentData.id),
-          loadTopStudents(),
-        ]);
-      } catch (err) {
-        console.error(err);
-        setError("حدث خطأ أثناء تحميل البيانات");
-      } finally {
-        setLoading(false);
-        setRefreshing(false);
+  const init = async (isRefresh = false) => {
+    try {
+      if (isRefresh) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
       }
-    },
-    [router, loadChapters, loadRecentExams, loadTopStudents]
-  );
+
+      setError("");
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      console.log("AUTH USER:", user);
+
+      if (!user) {
+        router.replace("/auth");
+        return;
+      }
+
+      const { data: studentData, error: studentError } =
+        await supabase
+          .from("students")
+          .select("*")
+          .eq("auth_id", user.id)
+          .single();
+
+      console.log("USER ID:", user.id);
+      console.log("STUDENT:", studentData);
+      console.log("ERROR:", studentError);
+
+      if (studentError || !studentData) {
+        router.replace("/auth");
+        return;
+      }
+
+      setStudent(studentData);
+
+      await Promise.all([
+        loadChapters(),
+        loadRecentExams(studentData.id),
+        loadTopStudents(),
+      ]);
+    } catch (err) {
+      console.error(err);
+      setError("حدث خطأ أثناء تحميل البيانات");
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
 
   useEffect(() => {
     init();
-  }, [init]);
+  }, []);
 
   const points = Number(student?.points ?? 0);
   const streak = Number(student?.streak ?? 0);
