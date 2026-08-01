@@ -235,22 +235,37 @@ export default function ExamPage() {
     const percentage = total > 0 ? (calculatedScore / total) * 100 : 0;
     const duration = Math.floor((Date.now() - startTime) / 1000);
 
-    const { error } = await supabase.from("exam_attempts").insert({
-      student_id: studentId,
-      exam_id: examId,
-      score: calculatedScore,
-      total,
-      percentage,
-      duration_seconds: duration,
-      started_at: new Date(startTime),
-      finished_at: new Date(),
-    });
+    const { data: insertedAttempt, error } = await supabase
+      .from("exam_attempts")
+      .insert({
+        student_id: studentId,
+        exam_id: examId,
+        score: calculatedScore,
+        total,
+        percentage,
+        duration_seconds: duration,
+        started_at: new Date(startTime),
+        finished_at: new Date(),
+      })
+      .select()
+      .single();
 
     if (error) {
       setSubmitting(false);
       alert(error.message);
       return;
     }
+
+    const answersToInsert = questions.map((q) => ({
+      attempt_id: insertedAttempt.id,
+      question_id: q.id,
+      student_answer: answers[q.id] || null,
+      is_correct: answers[q.id] === q.correct_answer,
+    }));
+
+    await supabase
+      .from("exam_answers")
+      .insert(answersToInsert);
 
     const { data: attempts } = await supabase
       .from("exam_attempts")
@@ -291,7 +306,7 @@ export default function ExamPage() {
     localStorage.removeItem(`exam_start_${examId}`);
 
     router.push(
-      `/results?exam=${examId}&score=${calculatedScore}&total=${total}&percentage=${percentage.toFixed(2)}`
+      `/student/results?attemptId=${insertedAttempt.id}&exam=${examId}&score=${calculatedScore}&total=${total}&percentage=${percentage.toFixed(2)}`
     );
   }
 
