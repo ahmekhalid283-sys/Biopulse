@@ -25,6 +25,10 @@ export default function ForgotPasswordPage() {
         .eq("email", email)
         .maybeSingle();
 
+      console.log("student:", student);
+      console.log("error:", error);
+      console.log("email:", email);
+
       if (error) {
         alert("حدث خطأ");
         return;
