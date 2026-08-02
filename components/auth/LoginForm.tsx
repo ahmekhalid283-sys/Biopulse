@@ -11,7 +11,7 @@ type Props = {
 export default function LoginForm({ onSwitch }: Props) {
 
     const router = useRouter();
-    const [phone, setPhone] = useState("");
+    const [identifier, setIdentifier] = useState("");
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
 
@@ -19,24 +19,31 @@ export default function LoginForm({ onSwitch }: Props) {
       try {
         setLoading(true);
 
-        const { data: student, error: studentError } = await supabase
-          .from("students")
-          .select("email")
-          .eq("phone", phone)
-          .single();
+        let emailToUse = identifier.trim();
 
-        if (studentError || !student) {
-          alert("رقم الهاتف غير موجود");
-          return;
+        // لو المدخل لا يحتوي على @، إذن هو رقم هاتف ونحتاج للبحث عن البريد المرتبط به في جدول students
+        if (!emailToUse.includes("@")) {
+          const { data: student, error: studentError } = await supabase
+            .from("students")
+            .select("email")
+            .eq("phone", emailToUse)
+            .single();
+
+          if (studentError || !student) {
+            alert("رقم الهاتف أو البريد الإلكتروني غير موجود");
+            return;
+          }
+
+          emailToUse = student.email;
         }
 
         const { error } = await supabase.auth.signInWithPassword({
-          email: student.email,
+          email: emailToUse,
           password,
         });
 
         if (error) {
-          alert("رقم الهاتف أو كلمة المرور غير صحيحة");
+          alert("البيانات أو كلمة المرور غير صحيحة");
           return;
         }
 
@@ -44,6 +51,10 @@ export default function LoginForm({ onSwitch }: Props) {
       } finally {
         setLoading(false);
       }
+    };
+
+    const forgotPassword = () => {
+      router.push("/forgot-password");
     };
  
     return (
@@ -61,14 +72,14 @@ export default function LoginForm({ onSwitch }: Props) {
 
         <div>
           <label className="mb-2 block text-white">
-            رقم الهاتف
+            البريد الإلكتروني أو رقم الهاتف
           </label>
 
           <input
             type="text"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder="01xxxxxxxxx"
+            value={identifier}
+            onChange={(e) => setIdentifier(e.target.value)}
+            placeholder="name@example.com أو 01xxxxxxxxx"
             className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none transition focus:border-cyan-400"
           />
         </div>
@@ -99,6 +110,7 @@ export default function LoginForm({ onSwitch }: Props) {
 
           <button
             type="button"
+            onClick={forgotPassword}
             className="text-cyan-400 hover:text-cyan-300"
           >
             نسيت كلمة المرور؟
@@ -109,7 +121,7 @@ export default function LoginForm({ onSwitch }: Props) {
         <button
           onClick={login}
           disabled={loading}
-          className="mt-2 w-full rounded-xl bg-cyan-500 py-3 text-lg font-bold text-white transition hover:bg-cyan-600"
+          className="mt-2 w-full rounded-xl bg-cyan-500 py-3 text-lg font-bold text-white transition hover:bg-cyan-600 disabled:opacity-50"
         >
           {loading ? "جارى تسجيل الدخول..." : "تسجيل الدخول"}
         </button>

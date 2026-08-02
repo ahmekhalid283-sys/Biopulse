@@ -11,9 +11,9 @@ type Props = {
 export default function RegisterForm({ onSwitch }: Props) {
     const router = useRouter();
     const [fullName, setFullName] = useState("");
+    const [email, setEmail] = useState("");
     const [phone, setPhone] = useState("");
     const [governorate, setGovernorate] = useState("");
-    const [school, setSchool] = useState("");
     const [grade, setGrade] = useState("الثالث الثانوي");
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
@@ -27,8 +27,6 @@ export default function RegisterForm({ onSwitch }: Props) {
 
       try {
         setLoading(true);
-
-        const email = `${phone}@biopulse.app`;
 
         const { data, error } = await supabase.auth.signUp({
           email,
@@ -53,7 +51,6 @@ export default function RegisterForm({ onSwitch }: Props) {
             phone,
             full_name: fullName,
             governorate,
-            school,
             grade,
           });
 
@@ -97,6 +94,20 @@ export default function RegisterForm({ onSwitch }: Props) {
 
         <div>
           <label className="mb-2 block text-white">
+            البريد الإلكتروني
+          </label>
+
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="name@example.com"
+            className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none transition focus:border-cyan-400"
+          />
+        </div>
+
+        <div>
+          <label className="mb-2 block text-white">
             رقم الهاتف
           </label>
 
@@ -114,27 +125,39 @@ export default function RegisterForm({ onSwitch }: Props) {
             المحافظة
           </label>
 
-          <input
-            type="text"
+          <select
             value={governorate}
             onChange={(e) => setGovernorate(e.target.value)}
-            placeholder="المنوفية"
             className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none transition focus:border-cyan-400"
-          />
-        </div>
-
-        <div>
-          <label className="mb-2 block text-white">
-            المدرسة
-          </label>
-
-          <input
-            type="text"
-            value={school}
-            onChange={(e) => setSchool(e.target.value)}
-            placeholder="اسم المدرسة"
-            className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none transition focus:border-cyan-400"
-          />
+          >
+            <option value="">اختر المحافظة</option>
+            <option>القاهرة</option>
+            <option>الجيزة</option>
+            <option>الإسكندرية</option>
+            <option>الدقهلية</option>
+            <option>البحيرة</option>
+            <option>المنوفية</option>
+            <option>الغربية</option>
+            <option>الشرقية</option>
+            <option>القليوبية</option>
+            <option>كفر الشيخ</option>
+            <option>دمياط</option>
+            <option>بورسعيد</option>
+            <option>الإسماعيلية</option>
+            <option>السويس</option>
+            <option>بني سويف</option>
+            <option>الفيوم</option>
+            <option>المنيا</option>
+            <option>أسيوط</option>
+            <option>سوهاج</option>
+            <option>قنا</option>
+            <option>الأقصر</option>
+            <option>أسوان</option>
+            <option>مطروح</option>
+            <option>الوادي الجديد</option>
+            <option>شمال سيناء</option>
+            <option>جنوب سيناء</option>
+          </select>
         </div>
 
         <div>
