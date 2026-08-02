@@ -19,12 +19,28 @@ export default function ForgotPasswordPage() {
     try {
       setLoading(true);
 
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      const { data: student, error } = await supabase
+        .from("students")
+        .select("id")
+        .eq("email", email)
+        .maybeSingle();
+
+      if (error) {
+        alert("حدث خطأ");
+        return;
+      }
+
+      if (!student) {
+        alert("لا يوجد حساب مرتبط بهذا البريد الإلكتروني");
+        return;
+      }
+
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/reset-password`,
       });
 
-      if (error) {
-        alert(error.message);
+      if (resetError) {
+        alert(resetError.message);
         return;
       }
 
