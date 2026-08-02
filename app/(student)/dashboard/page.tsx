@@ -110,6 +110,7 @@ export default function DashboardPage() {
   console.log("Chapters state", chapters.length);
   console.log("Recent Exams", recentExams.length);
   console.log("Top Students", topStudents.length);
+
   const loadChapters = async () => {
     const { data: chaptersData, error } = await supabase
       .from("chapters")
@@ -329,18 +330,34 @@ export default function DashboardPage() {
             <div className="flex justify-between items-center">
               <h1 className="text-3xl font-bold">لوحة التحكم</h1>
 
-              <button
-                onClick={() => init(true)}
-                disabled={refreshing}
-                className="flex items-center gap-2 px-4 py-2 bg-slate-900 border border-cyan-500/20 hover:border-cyan-500 rounded-xl text-cyan-400 transition-colors disabled:opacity-50"
-              >
-                {refreshing ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  "🔄"
-                )}
-                {refreshing ? "جاري التحديث..." : "تحديث البيانات"}
-              </button>
+              <div className="flex items-center gap-4">
+                <Link
+                  href="/profile"
+                  className="px-4 py-2 bg-slate-900 border border-cyan-500/20 hover:border-cyan-500 rounded-xl text-cyan-400 transition-colors font-medium"
+                >
+                  البروفايل
+                </Link>
+
+                <Link
+                  href="/settings"
+                  className="px-4 py-2 bg-slate-900 border border-cyan-500/20 hover:border-cyan-500 rounded-xl text-cyan-400 transition-colors font-medium"
+                >
+                  الإعدادات
+                </Link>
+
+                <button
+                  onClick={() => init(true)}
+                  disabled={refreshing}
+                  className="flex items-center gap-2 px-4 py-2 bg-slate-900 border border-cyan-500/20 hover:border-cyan-500 rounded-xl text-cyan-400 transition-colors disabled:opacity-50"
+                >
+                  {refreshing ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    "🔄"
+                  )}
+                  {refreshing ? "جاري التحديث..." : "تحديث البيانات"}
+                </button>
+              </div>
             </div>
 
             <div className="grid lg:grid-cols-3 gap-6">
