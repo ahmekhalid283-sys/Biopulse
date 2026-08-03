@@ -263,9 +263,20 @@ export default function ExamPage() {
       is_correct: answers[q.id] === q.correct_answer,
     }));
 
-    await supabase
+    const { data: insertedAnswers, error: answersError } = await supabase
       .from("exam_answers")
-      .insert(answersToInsert);
+      .insert(answersToInsert)
+      .select();
+    
+    console.log("answersToInsert:", answersToInsert);
+    console.log("insertedAnswers:", insertedAnswers);
+    console.log("answersError:", answersError);
+    
+    if (answersError) {
+      alert(answersError.message);
+      setSubmitting(false);
+      return;
+    }
 
     const { data: attempts } = await supabase
       .from("exam_attempts")
