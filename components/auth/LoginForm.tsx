@@ -42,6 +42,18 @@ export default function LoginForm({ onSwitch }: Props) {
           password,
         });
 
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        console.log("USER ID:", user?.id);
+        
+        const { data: admin } = await supabase
+          .from("admins")
+          .select("*")
+          .eq("auth_id", user?.id)
+          .maybeSingle();
+        console.log("ADMIN:", admin);
+
         if (error) {
           alert("البيانات أو كلمة المرور غير صحيحة");
           return;
