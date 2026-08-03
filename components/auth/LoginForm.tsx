@@ -13,6 +13,7 @@ export default function LoginForm({ onSwitch }: Props) {
     const router = useRouter();
     const [identifier, setIdentifier] = useState("");
     const [password, setPassword] = useState("");
+    const [rememberMe, setRememberMe] = useState(true);
     const [loading, setLoading] = useState(false);
 
     const login = async () => {
@@ -42,24 +43,35 @@ export default function LoginForm({ onSwitch }: Props) {
           password,
         });
 
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        console.log("USER ID:", user?.id);
-        
-        const { data: admin } = await supabase
-          .from("admins")
-          .select("*")
-          .eq("auth_id", user?.id)
-          .maybeSingle();
-        console.log("ADMIN:", admin);
-
         if (error) {
           alert("البيانات أو كلمة المرور غير صحيحة");
           return;
         }
 
-        router.replace("/dashboard");
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        console.log("User ID:", user?.id);
+
+        const { data: admin, error: adminError } = await supabase
+          .from("admins")
+          .select("*")
+          .eq("auth_id", user!.id)
+          .maybeSingle();
+        console.log("Admin:", admin);
+        console.log("Admin Error:", adminError);
+
+        if (!rememberMe) {
+          window.addEventListener("beforeunload", async () => {
+            await supabase.auth.signOut();
+          });
+        }
+
+        if (admin) {
+          router.replace("/admin");
+        } else {
+          router.replace("/dashboard");
+        }
       } finally {
         setLoading(false);
       }
@@ -114,7 +126,11 @@ export default function LoginForm({ onSwitch }: Props) {
 
           <label className="flex items-center gap-2 text-slate-300">
 
-            <input type="checkbox" />
+            <input
+              type="checkbox"
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+            />
 
             تذكرني
 
