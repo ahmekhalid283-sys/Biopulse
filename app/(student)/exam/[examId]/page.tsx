@@ -317,10 +317,7 @@ export default function ExamPage() {
     localStorage.removeItem(`exam_start_${examId}`);
 
     console.log("Inserted Attempt:", insertedAttempt);
-    console.log("Inserted Attempt ID:", insertedAttempt.id);
-    const url = `/results?attemptId=${insertedAttempt.id}&exam=${examId}&score=${calculatedScore}&total=${total}&percentage=${percentage.toFixed(2)}`;
-    console.log("Redirect URL:", url);
-    router.push(url);
+    router.push(`/results/${insertedAttempt.id}`);
   }
 
   if (loading) {

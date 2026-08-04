@@ -54,13 +54,21 @@ export default function ReviewPage() {
 
     const { data: qs } = await supabase
       .from("questions")
-      .select("*")
+      .select(`
+        *,
+        exam_id,
+        question_order
+      `)
       .eq("exam_id", attempt.exam_id)
       .order("question_order");
 
     const { data: ans } = await supabase
       .from("exam_answers")
-      .select("*")
+      .select(`
+        question_id,
+        student_answer,
+        is_correct
+      `)
       .eq("attempt_id", attemptId);
 
     console.log("Attempt ID:", attemptId);
@@ -69,20 +77,9 @@ export default function ReviewPage() {
     console.log("First Answer:", ans?.[0]);
 
     const map: Record<string, ReviewAnswer> = {};
-    
-    // ربط مرن: إذا لم يتطابق الـ ID حرفياً، سنحاول مطابقتهم بالترتيب إذا تساوت الأعداد
-    if (ans && qs) {
-      ans.forEach((a, index) => {
-        // نخزن بالمفتاح الأساسي
-        if (a.question_id) {
-          map[a.question_id] = a;
-        }
-        // لو الـ IDs فيها اختلاف في الـ format، نربطهم بالترتيب احتياطياً
-        if (qs[index]) {
-          map[qs[index].id] = a;
-        }
-      });
-    }
+    ans?.forEach((a) => {
+      map[a.question_id] = a;
+    });
 
     setAnswers(map);
     setQuestions(qs || []);
@@ -113,13 +110,11 @@ export default function ReviewPage() {
         </div>
 
         {questions.map((q, index) => {
-          // نبحث إما بالـ id الخاص بالسؤال أو بأول إجابة متاحة في حال اختلاف الـ IDs
           const answer = answers[q.id];
 
-          const studentAns = answer?.student_answer?.toString().trim().toUpperCase() || "";
-          const correctAns = q.correct_answer?.toString().trim().toUpperCase() || "";
-
-          const studentCorrect = answer && studentAns === correctAns;
+          const studentAns = answer?.student_answer?.trim().toUpperCase() ?? "";
+          const correctAns = q.correct_answer?.trim().toUpperCase() ?? "";
+          const isCorrect = answer?.is_correct ?? false;
 
           return (
             <div
@@ -136,15 +131,15 @@ export default function ReviewPage() {
                     <XCircle />
                     لم تتم الإجابة
                   </div>
-                ) : studentCorrect ? (
+                ) : isCorrect ? (
                   <div className="flex items-center gap-2 text-green-400 font-bold">
                     <CheckCircle2 />
-                    صحيح
+                    إجابة صحيحة
                   </div>
                 ) : (
                   <div className="flex items-center gap-2 text-red-400 font-bold">
                     <XCircle />
-                    خطأ
+                    إجابة خاطئة
                   </div>
                 )}
               </div>
@@ -167,24 +162,36 @@ export default function ReviewPage() {
                 ["C", q.option_c],
                 ["D", q.option_d],
               ].map(([key, text]) => {
-                const isCorrect = correctAns === key;
-                const isStudent = studentAns === key;
+                const optionIsCorrect = correctAns === key;
+                const optionIsStudent = studentAns === key;
 
                 return (
                   <div
                     key={key}
-                    className={`mb-3 rounded-xl border p-4 ${
-                      isCorrect
-                        ? "border-green-500 bg-green-500/10 text-green-200"
-                        : isStudent
-                        ? "border-red-500 bg-red-500/10 text-red-200"
-                        : "border-slate-700"
+                    className={`mb-3 rounded-xl border p-4 transition-all ${
+                      optionIsCorrect
+                        ? "border-green-500 bg-green-500/20 text-green-200"
+                        : optionIsStudent
+                        ? "border-red-500 bg-red-500/20 text-red-200"
+                        : "border-slate-700 bg-slate-900"
                     }`}
                   >
                     <span className="font-bold mr-2">
                       {key})
                     </span>
                     {text}
+
+                    {optionIsCorrect && (
+                      <span className="ml-3 text-green-400 font-bold">
+                        ✔ الإجابة الصحيحة
+                      </span>
+                    )}
+
+                    {optionIsStudent && !optionIsCorrect && (
+                      <span className="ml-3 text-red-400 font-bold">
+                        ✖ اختيارك
+                      </span>
+                    )}
                   </div>
                 );
               })}
