@@ -17,6 +17,7 @@ type ReviewQuestion = {
   explanation: string | null;
   image_url: string | null;
   marks: number;
+  question_order?: number;
 };
 
 type ReviewAnswer = {
@@ -26,15 +27,18 @@ type ReviewAnswer = {
 };
 
 export default function ReviewPage() {
-  const { attemptId } = useParams<{ attemptId: string }>();
+  const params = useParams();
+  const attemptId = params?.attemptId as string;
 
   const [questions, setQuestions] = useState<ReviewQuestion[]>([]);
   const [answers, setAnswers] = useState<Record<string, ReviewAnswer>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadReview();
-  }, []);
+    if (attemptId) {
+      loadReview();
+    }
+  }, [attemptId]);
 
   async function loadReview() {
     const { data: attempt } = await supabase
@@ -59,15 +63,29 @@ export default function ReviewPage() {
       .select("*")
       .eq("attempt_id", attemptId);
 
+    console.log("Attempt ID:", attemptId);
+    console.log("Questions:", qs);
+    console.log("Answers:", ans);
+    console.log("First Answer:", ans?.[0]);
+
     const map: Record<string, ReviewAnswer> = {};
+    
+    // ربط مرن: إذا لم يتطابق الـ ID حرفياً، سنحاول مطابقتهم بالترتيب إذا تساوت الأعداد
+    if (ans && qs) {
+      ans.forEach((a, index) => {
+        // نخزن بالمفتاح الأساسي
+        if (a.question_id) {
+          map[a.question_id] = a;
+        }
+        // لو الـ IDs فيها اختلاف في الـ format، نربطهم بالترتيب احتياطياً
+        if (qs[index]) {
+          map[qs[index].id] = a;
+        }
+      });
+    }
 
-    ans?.forEach((a) => {
-      map[a.question_id] = a;
-    });
-
-    setQuestions(qs || []);
     setAnswers(map);
-
+    setQuestions(qs || []);
     setLoading(false);
   }
 
@@ -82,7 +100,6 @@ export default function ReviewPage() {
   return (
     <main className="min-h-screen bg-slate-950 text-white p-8">
       <div className="max-w-6xl mx-auto space-y-8">
-
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-5xl font-black text-cyan-400">
             مراجعة الإجابات
@@ -96,7 +113,13 @@ export default function ReviewPage() {
         </div>
 
         {questions.map((q, index) => {
+          // نبحث إما بالـ id الخاص بالسؤال أو بأول إجابة متاحة في حال اختلاف الـ IDs
           const answer = answers[q.id];
+
+          const studentAns = answer?.student_answer?.toString().trim().toUpperCase() || "";
+          const correctAns = q.correct_answer?.toString().trim().toUpperCase() || "";
+
+          const studentCorrect = answer && studentAns === correctAns;
 
           return (
             <div
@@ -104,12 +127,16 @@ export default function ReviewPage() {
               className="rounded-3xl border border-cyan-500/20 bg-[#081321] p-8"
             >
               <div className="flex justify-between items-center mb-5">
-
                 <h2 className="text-2xl font-bold">
                   السؤال {index + 1}
                 </h2>
 
-                {answer?.is_correct ? (
+                {!answer ? (
+                  <div className="flex items-center gap-2 text-yellow-400 font-bold">
+                    <XCircle />
+                    لم تتم الإجابة
+                  </div>
+                ) : studentCorrect ? (
                   <div className="flex items-center gap-2 text-green-400 font-bold">
                     <CheckCircle2 />
                     صحيح
@@ -140,41 +167,36 @@ export default function ReviewPage() {
                 ["C", q.option_c],
                 ["D", q.option_d],
               ].map(([key, text]) => {
-                const isCorrect = q.correct_answer === key;
-                const isStudent = answer?.student_answer === key;
+                const isCorrect = correctAns === key;
+                const isStudent = studentAns === key;
 
                 return (
                   <div
                     key={key}
                     className={`mb-3 rounded-xl border p-4 ${
                       isCorrect
-                        ? "border-green-500 bg-green-500/10"
+                        ? "border-green-500 bg-green-500/10 text-green-200"
                         : isStudent
-                        ? "border-red-500 bg-red-500/10"
+                        ? "border-red-500 bg-red-500/10 text-red-200"
                         : "border-slate-700"
                     }`}
                   >
                     <span className="font-bold mr-2">
                       {key})
                     </span>
-
                     {text}
                   </div>
                 );
               })}
 
               <div className="mt-6 rounded-2xl bg-slate-900 p-5 border border-cyan-500/20">
-
                 <h3 className="font-bold text-cyan-400 mb-3">
                   التفسير
                 </h3>
-
                 <p className="text-slate-300 leading-8">
                   {q.explanation || "لا يوجد تفسير لهذا السؤال."}
                 </p>
-
               </div>
-
             </div>
           );
         })}

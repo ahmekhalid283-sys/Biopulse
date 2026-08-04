@@ -11,6 +11,7 @@ function ResultsContent() {
   const total = Number(params.get("total") || 0);
   const percentage = Number(params.get("percentage") || 0);
   const attemptId = params.get("attemptId");
+  console.log("Results AttemptId:", attemptId);
 
   const passed = percentage >= 50;
 

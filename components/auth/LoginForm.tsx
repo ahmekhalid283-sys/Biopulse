@@ -38,19 +38,22 @@ export default function LoginForm({ onSwitch }: Props) {
           emailToUse = student.email;
         }
 
-        const { error } = await supabase.auth.signInWithPassword({
+        const { data, error } = await supabase.auth.signInWithPassword({
           email: emailToUse,
           password,
         });
+        console.log("LOGIN DATA:", data);
+        console.log("LOGIN ERROR:", error);
 
         if (error) {
-          alert("البيانات أو كلمة المرور غير صحيحة");
+          alert(error.message);
           return;
         }
 
         const {
           data: { user },
         } = await supabase.auth.getUser();
+        console.log("AUTH USER:", user);
         console.log("User ID:", user?.id);
 
         const { data: admin, error: adminError } = await supabase
@@ -60,6 +63,7 @@ export default function LoginForm({ onSwitch }: Props) {
           .maybeSingle();
         console.log("Admin:", admin);
         console.log("Admin Error:", adminError);
+        console.log("Going to:", admin ? "/admin" : "/dashboard");
 
         if (!rememberMe) {
           window.addEventListener("beforeunload", async () => {
