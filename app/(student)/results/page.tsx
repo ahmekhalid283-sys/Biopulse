@@ -12,7 +12,7 @@ type Attempt = {
   created_at: string;
   exams: {
     title: string;
-  } | null;
+  }[];
 };
 
 export default function ResultsPage() {
@@ -110,7 +110,7 @@ export default function ResultsPage() {
                 <div className="space-y-2">
 
                   <h2 className="text-3xl font-black">
-                    {attempt.exams?.title ?? "امتحان"}
+                    {attempt.exams?.[0]?.title ?? "امتحان"}
                   </h2>
 
                   <p className="text-slate-400">
