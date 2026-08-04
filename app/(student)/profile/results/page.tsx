@@ -11,16 +11,19 @@ type Attempt = {
   percentage: number;
   duration_seconds: number;
   created_at: string;
+
   exams: {
     id: string;
     title: string;
+
     lectures: {
       title: string;
+
       chapters: {
         title: string;
-      } | null;
-    } | null;
-  } | null;
+      }[];
+    }[];
+  }[];
 };
 
 export default function ResultsPage() {
@@ -119,15 +122,15 @@ export default function ResultsPage() {
                   <div>
 
                     <h2 className="text-3xl font-bold text-white">
-                      {attempt.exams?.title}
+                      {attempt.exams?.[0]?.title}
                     </h2>
 
                     <p className="mt-2 text-cyan-400">
-                      📚 {attempt.exams?.lectures?.chapters?.title}
+                      📚 {attempt.exams?.[0]?.lectures?.[0]?.chapters?.[0]?.title}
                     </p>
 
                     <p className="mt-1 text-slate-400">
-                      🎥 {attempt.exams?.lectures?.title}
+                      🎥 {attempt.exams?.[0]?.lectures?.[0]?.title}
                     </p>
 
                     <p className="mt-3 text-slate-400 text-sm">
