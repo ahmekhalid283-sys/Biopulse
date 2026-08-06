@@ -9,22 +9,18 @@ import {
   User,
   Settings,
   LogOut,
-  Flame,
-  Star,
   Dna,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 type SidebarProps = {
   studentName: string;
-  points: number;
-  streak: number;
+  avatarUrl?: string;
 };
 
 export default function Sidebar({
   studentName,
-  points,
-  streak,
+  avatarUrl,
 }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -63,23 +59,12 @@ export default function Sidebar({
   };
 
   return (
-    <aside
-      className="
-      hidden lg:flex
-      fixed right-0 top-0
-      h-screen w-[280px]
-      flex-col
-      border-l border-cyan-500/20
-      bg-[#07131f]/90
-      backdrop-blur-xl
-      shadow-[0_0_40px_rgba(0,255,255,.06)]
-      p-6
-    "
-    >
+    <aside className="fixed top-0 right-0 h-screen w-72 bg-[#081321]/95 backdrop-blur-xl border-l border-cyan-500/20 p-6 flex flex-col z-50 overflow-y-auto">
+
       {/* Logo */}
-      <div className="flex items-center gap-3">
-        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-cyan-500/10">
-          <Dna className="h-8 w-8 text-cyan-400" />
+      <div className="flex items-center gap-4">
+        <div className="rounded-xl bg-cyan-500/10 p-3">
+          <Dna className="text-cyan-400" size={30} />
         </div>
 
         <div>
@@ -94,44 +79,24 @@ export default function Sidebar({
       </div>
 
       {/* Student */}
-      <div className="mt-8 rounded-2xl border border-cyan-500/20 bg-slate-900/60 p-5">
+      <div className="mt-8 rounded-2xl border border-cyan-500/20 bg-slate-900/60 p-5 text-center">
+
+        <img
+          src={avatarUrl || "/images/default-avatar.png"}
+          className="mx-auto mb-4 h-24 w-24 rounded-full border-4 border-cyan-400 object-cover"
+          alt=""
+        />
 
         <h2
-          className="font-bold text-lg text-white truncate"
+          className="truncate text-lg font-bold text-white"
           title={studentName}
         >
           {studentName}
         </h2>
 
-        <p className="text-xs text-slate-400 mt-1">
+        <p className="mt-1 text-xs text-slate-400">
           Biology Student
         </p>
-
-        <div className="mt-5 flex items-center justify-between">
-
-          <div className="flex items-center gap-2 text-yellow-400">
-            <Star size={18} />
-            <span className="font-bold">Points</span>
-          </div>
-
-          <span className="font-bold text-white">
-            {points}
-          </span>
-
-        </div>
-
-        <div className="mt-4 flex items-center justify-between">
-
-          <div className="flex items-center gap-2 text-orange-400">
-            <Flame size={18} />
-            <span className="font-bold">Streak</span>
-          </div>
-
-          <span className="font-bold text-white">
-            {streak}
-          </span>
-
-        </div>
 
       </div>
 
@@ -149,7 +114,7 @@ export default function Sidebar({
               className={`group flex items-center gap-4 rounded-xl px-5 py-4 transition-all duration-300 ${
                 active
                   ? "border border-cyan-400 bg-cyan-500/20 text-cyan-300 shadow-lg"
-                  : "text-slate-300 hover:bg-slate-800 hover:translate-x-1"
+                  : "text-slate-300 hover:bg-slate-800 hover:-translate-x-1"
               }`}
             >
               <Icon size={21} />
@@ -169,6 +134,7 @@ export default function Sidebar({
         <LogOut size={20} />
         تسجيل الخروج
       </button>
+
     </aside>
   );
 }

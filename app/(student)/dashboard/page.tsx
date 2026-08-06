@@ -23,6 +23,7 @@ type Student = {
   id: string;
   auth_id: string;
   full_name: string;
+  avatar_url?: string;
   average_score: number | null;
   points: number;
   streak: number;
@@ -259,8 +260,6 @@ export default function DashboardPage() {
       <div className="min-h-screen bg-slate-950 text-white">
         <Sidebar
           studentName="Loading..."
-          points={0}
-          streak={0}
         />
 
         <main className="flex-1 p-4 lg:p-8 lg:mr-72">
@@ -308,8 +307,7 @@ export default function DashboardPage() {
 
       <Sidebar
         studentName={student.full_name}
-        points={points}
-        streak={streak}
+        avatarUrl={student.avatar_url}
       />
 
       <div className="flex-1 flex flex-col lg:mr-72">
