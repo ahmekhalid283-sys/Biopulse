@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 
@@ -17,6 +17,9 @@ export default function ProfilePage() {
   const [student, setStudent] = useState<Student | null>(null);
   const [loading, setLoading] = useState(true);
   const [lecturesWatched, setLecturesWatched] = useState(0);
+  const [uploading, setUploading] = useState(false);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const loadStudent = async () => {
@@ -60,6 +63,56 @@ export default function ProfilePage() {
     loadStudent();
   }, []);
 
+  async function uploadAvatar(
+    e: React.ChangeEvent<HTMLInputElement>
+  ) {
+    const file = e.target.files?.[0];
+    if (!file || !student) return;
+
+    setUploading(true);
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) return;
+
+    const fileExt = file.name.split(".").pop();
+    const fileName = `${user.id}.${fileExt}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("avatars")
+      .upload(fileName, file, {
+        upsert: true,
+      });
+
+    if (uploadError) {
+      alert(uploadError.message);
+      setUploading(false);
+      return;
+    }
+
+    const { data } = supabase.storage
+      .from("avatars")
+      .getPublicUrl(fileName);
+
+    const publicUrl = data.publicUrl;
+
+    await supabase
+      .from("students")
+      .update({
+        avatar_url: publicUrl,
+      })
+      .eq("auth_id", user.id);
+
+    setStudent({
+      ...student,
+      avatar_url: publicUrl,
+    });
+
+    setUploading(false);
+  }
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-950 text-white">
@@ -76,11 +129,34 @@ export default function ProfilePage() {
         </h1>
 
         <div className="flex flex-col items-center">
-          <img
-            src={student?.avatar_url || "/images/default-avatar.png"}
-            className="w-36 h-36 rounded-full border-4 border-cyan-400 object-cover"
-            alt=""
-          />
+          <div className="relative">
+            <img
+              src={student?.avatar_url || "/images/default-avatar.png"}
+              className="w-36 h-36 rounded-full border-4 border-cyan-400 object-cover cursor-pointer hover:scale-105 transition duration-300"
+              onClick={() =>
+                setPreviewImage(
+                  student?.avatar_url || "/images/default-avatar.png"
+                )
+              }
+              alt=""
+            />
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              hidden
+              onChange={uploadAvatar}
+            />
+
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="absolute bottom-1 right-1 rounded-full bg-cyan-500 px-3 py-1 text-xs font-bold text-white hover:bg-cyan-600"
+            >
+              {uploading ? "..." : "تغيير"}
+            </button>
+          </div>
+
           <h2 className="mt-5 text-3xl font-bold text-white">
             {student?.full_name}
           </h2>
@@ -123,6 +199,20 @@ export default function ProfilePage() {
           📋 نتائج الامتحانات
         </Link>
       </div>
+
+      {previewImage && (
+        <div
+          onClick={() => setPreviewImage(null)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+        >
+          <img
+            src={previewImage}
+            alt=""
+            className="max-w-[90vw] max-h-[90vh] rounded-2xl border-4 border-white shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </main>
   );
 }

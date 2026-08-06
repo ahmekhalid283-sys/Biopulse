@@ -10,9 +10,21 @@ type Attempt = {
   total: number;
   percentage: number;
   created_at: string;
+
   exams: {
+    id: string;
     title: string;
-  }[];
+
+    lectures: {
+      id: string;
+      title: string;
+
+      chapters: {
+        id: string;
+        title: string;
+      };
+    };
+  };
 };
 
 export default function ResultsPage() {
@@ -52,15 +64,24 @@ export default function ResultsPage() {
         total,
         percentage,
         created_at,
-        exams (
-          title
+        exams(
+          id,
+          title,
+          lectures(
+            id,
+            title,
+            chapters(
+              id,
+              title
+            )
+          )
         )
       `)
       .eq("student_id", student.id)
       .order("created_at", { ascending: false });
 
     if (!error && data) {
-      setAttempts(data as Attempt[]);
+      setAttempts(data as unknown as Attempt[]);
     }
 
     setLoading(false);
@@ -76,7 +97,6 @@ export default function ResultsPage() {
 
   return (
     <main className="min-h-screen bg-slate-950 text-white relative overflow-hidden">
-
       <div className="absolute inset-0">
         <img
           src="/images/background.jpg"
@@ -87,7 +107,6 @@ export default function ResultsPage() {
       </div>
 
       <div className="relative max-w-6xl mx-auto py-16 px-6">
-
         <h1 className="text-5xl font-black mb-10 text-center">
           نتائج الامتحانات
         </h1>
@@ -100,65 +119,103 @@ export default function ResultsPage() {
           </div>
         ) : (
           <div className="space-y-6">
+            {attempts.map((attempt) => {
+              const exam = attempt.exams;
+              const lecture = exam?.lectures;
+              const chapter = lecture?.chapters;
 
-            {attempts.map((attempt) => (
-              <div
-                key={attempt.id}
-                className="rounded-3xl bg-[#081321]/95 border border-cyan-500/20 p-8 flex flex-col lg:flex-row items-center justify-between gap-6"
-              >
-
-                <div className="space-y-2">
-
-                  <h2 className="text-3xl font-black">
-                    {attempt.exams?.[0]?.title ?? "امتحان"}
-                  </h2>
-
-                  <p className="text-slate-400">
-                    {new Date(attempt.created_at).toLocaleDateString("ar-EG")}
-                  </p>
-
-                </div>
-
-                <div className="flex gap-6">
-
-                  <div className="text-center">
-                    <p className="text-slate-400">
-                      الدرجة
-                    </p>
-
-                    <h3 className="text-3xl font-black text-cyan-400">
-                      {attempt.score}/{attempt.total}
-                    </h3>
-                  </div>
-
-                  <div className="text-center">
-                    <p className="text-slate-400">
-                      النسبة
-                    </p>
-
-                    <h3
-                      className={`text-3xl font-black ${
-                        attempt.percentage >= 50
-                          ? "text-green-400"
-                          : "text-red-400"
-                      }`}
-                    >
-                      {Math.round(attempt.percentage)}%
-                    </h3>
-                  </div>
-
-                </div>
-
-                <Link
-                  href={`/results/${attempt.id}`}
-                  className="rounded-2xl bg-cyan-600 hover:bg-cyan-500 transition px-8 py-4 font-black"
+              return (
+                <div
+                  key={attempt.id}
+                  className="rounded-3xl bg-[#081321]/95 border border-cyan-500/20 p-8 flex flex-col lg:flex-row items-center justify-between gap-6"
                 >
-                  عرض النتيجة
-                </Link>
+                  <div className="space-y-3 w-full lg:w-auto">
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">📚</span>
+                      <div>
+                        <p className="text-xs text-slate-500">الفصل</p>
+                        <h2 className="text-3xl font-black text-white">
+                          {chapter?.title ?? "الفصل العام"}
+                        </h2>
+                      </div>
+                    </div>
 
-              </div>
-            ))}
+                    <div className="flex items-center gap-3">
+                      <span className="text-xl">📖</span>
+                      <div>
+                        <p className="text-xs text-slate-500">المحاضرة</p>
+                        <p className="text-cyan-400 text-lg font-bold">
+                          {lecture?.title ?? "المحاضرة العامة"}
+                        </p>
+                      </div>
+                    </div>
 
+                    <div className="flex items-center gap-3">
+                      <span className="text-xl">📝</span>
+                      <div>
+                        <p className="text-xs text-slate-500">الامتحان</p>
+                        <p className="text-xl font-bold text-white">
+                          📑 {exam?.title ?? "امتحان"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 pt-2">
+                      <span>📅</span>
+                      <p className="text-slate-400 text-sm">
+                        {new Date(attempt.created_at).toLocaleDateString("ar-EG", {
+                          weekday: "long",
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        })}
+                      </p>
+                    </div>
+
+                    <div className="pt-2">
+                      <span
+                        className={`inline-flex items-center rounded-full px-4 py-1 text-sm font-bold ${
+                          Number(attempt.percentage) >= 50
+                            ? "bg-green-500/20 text-green-400 border border-green-500/40"
+                            : "bg-red-500/20 text-red-400 border border-red-500/40"
+                        }`}
+                      >
+                        {Number(attempt.percentage) >= 50 ? "✅ ناجح" : "❌ راسب"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-6 items-center">
+                    <div className="text-center">
+                      <p className="text-slate-400">الدرجة</p>
+                      <h3 className="text-3xl font-black text-cyan-400">
+                        {attempt.score}/{attempt.total}
+                      </h3>
+                    </div>
+
+                    <div className="text-center">
+                      <p className="text-slate-400">النسبة</p>
+                      <h3
+                        className={`text-3xl font-black ${
+                          attempt.percentage >= 50
+                            ? "text-green-400"
+                            : "text-red-400"
+                        }`}
+                      >
+                        {Math.round(attempt.percentage)}%
+                      </h3>
+                    </div>
+                  </div>
+
+                  <Link
+                    href={`/results/${attempt.id}`}
+                    className="rounded-2xl bg-cyan-500 hover:bg-cyan-400 transition-all duration-300 px-10 py-4 text-lg font-black shadow-lg hover:shadow-cyan-500/30 text-center"
+                  >
+                    عرض النتيجة
+                  </Link>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
