@@ -66,14 +66,19 @@ export default function RegisterForm({ onSwitch }: Props) {
     };
 
   return (
-    <div className="rounded-3xl border border-cyan-500/20 bg-slate-900/90 backdrop-blur-xl p-8 shadow-2xl">
+    <div className="rounded-3xl border border-cyan-500/20 bg-slate-900/90 backdrop-blur-xl p-8 shadow-2xl" dir="rtl">
 
-      <h2 className="text-4xl font-bold text-center text-white">
-        إنشاء حساب
+      <h2 className="text-5xl font-black text-center tracking-tight">
+        <span className="text-white">
+          Join BioPulse
+        </span>
       </h2>
 
-      <p className="mt-2 text-center text-slate-400">
-        أنشئ حسابك وابدأ رحلة BioPulse
+      <p className="mt-3 text-center text-slate-400 text-lg">
+        أنشئ حسابك وابدأ رحلتك داخل{" "}
+        <span className="text-cyan-400 font-semibold">
+          BioPulse
+        </span>
       </p>
 
       <div className="mt-8 space-y-4">
@@ -88,7 +93,7 @@ export default function RegisterForm({ onSwitch }: Props) {
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
             placeholder="Ahmed Khaled"
-            className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none transition focus:border-cyan-400"
+            className="w-full rounded-2xl border border-slate-700 bg-slate-950/70 px-5 py-4 text-white placeholder:text-slate-500 transition-all duration-300 focus:border-cyan-400 focus:ring-4 focus:ring-cyan-500/20 outline-none"
           />
         </div>
 
@@ -102,7 +107,7 @@ export default function RegisterForm({ onSwitch }: Props) {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="name@example.com"
-            className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none transition focus:border-cyan-400"
+            className="w-full rounded-2xl border border-slate-700 bg-slate-950/70 px-5 py-4 text-white placeholder:text-slate-500 transition-all duration-300 focus:border-cyan-400 focus:ring-4 focus:ring-cyan-500/20 outline-none"
           />
         </div>
 
@@ -116,7 +121,7 @@ export default function RegisterForm({ onSwitch }: Props) {
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             placeholder="01xxxxxxxxx"
-            className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none transition focus:border-cyan-400"
+            className="w-full rounded-2xl border border-slate-700 bg-slate-950/70 px-5 py-4 text-white placeholder:text-slate-500 transition-all duration-300 focus:border-cyan-400 focus:ring-4 focus:ring-cyan-500/20 outline-none"
           />
         </div>
 
@@ -128,7 +133,7 @@ export default function RegisterForm({ onSwitch }: Props) {
           <select
             value={governorate}
             onChange={(e) => setGovernorate(e.target.value)}
-            className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none transition focus:border-cyan-400"
+            className="w-full rounded-2xl border border-slate-700 bg-slate-950/70 px-5 py-4 text-white placeholder:text-slate-500 transition-all duration-300 focus:border-cyan-400 focus:ring-4 focus:ring-cyan-500/20 outline-none"
           >
             <option value="">اختر المحافظة</option>
             <option>القاهرة</option>
@@ -168,7 +173,7 @@ export default function RegisterForm({ onSwitch }: Props) {
           <select
             value={grade}
             onChange={(e) => setGrade(e.target.value)}
-            className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none transition focus:border-cyan-400"
+            className="w-full rounded-2xl border border-slate-700 bg-slate-950/70 px-5 py-4 text-white placeholder:text-slate-500 transition-all duration-300 focus:border-cyan-400 focus:ring-4 focus:ring-cyan-500/20 outline-none"
           >
             <option>الأول الثانوي</option>
             <option>الثاني الثانوي</option>
@@ -186,7 +191,7 @@ export default function RegisterForm({ onSwitch }: Props) {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="********"
-            className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none transition focus:border-cyan-400"
+            className="w-full rounded-2xl border border-slate-700 bg-slate-950/70 px-5 py-4 text-white placeholder:text-slate-500 transition-all duration-300 focus:border-cyan-400 focus:ring-4 focus:ring-cyan-500/20 outline-none"
           />
         </div>
 
@@ -200,21 +205,21 @@ export default function RegisterForm({ onSwitch }: Props) {
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             placeholder="********"
-            className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none transition focus:border-cyan-400"
+            className="w-full rounded-2xl border border-slate-700 bg-slate-950/70 px-5 py-4 text-white placeholder:text-slate-500 transition-all duration-300 focus:border-cyan-400 focus:ring-4 focus:ring-cyan-500/20 outline-none"
           />
         </div>
 
         <button
           onClick={register}
           disabled={loading}
-          className="mt-2 w-full rounded-xl bg-cyan-500 py-3 text-lg font-bold text-white transition hover:bg-cyan-600 disabled:opacity-50"
+          className="mt-3 w-full rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-500 py-4 text-lg font-bold text-white shadow-lg shadow-cyan-500/20 transition-all duration-300 hover:scale-[1.02] hover:shadow-cyan-500/40 active:scale-95 disabled:opacity-60"
         >
           {loading ? "جارى إنشاء الحساب..." : "إنشاء الحساب"}
         </button>
 
       </div>
 
-      <div className="mt-8 border-t border-slate-700 pt-6 text-center">
+      <div className="mt-10 border-t border-slate-800 pt-8 text-center">
 
         <span className="text-slate-400">
           لديك حساب بالفعل؟
@@ -222,7 +227,7 @@ export default function RegisterForm({ onSwitch }: Props) {
 
         <button
           onClick={onSwitch}
-          className="mr-2 font-bold text-cyan-400 hover:text-cyan-300"
+          className="mr-2 font-bold text-cyan-400 transition hover:text-cyan-300"
         >
           تسجيل الدخول
         </button>
