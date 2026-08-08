@@ -25,8 +25,6 @@ type Student = {
   full_name: string;
   avatar_url?: string;
   average_score: number | null;
-  points: number;
-  streak: number;
   total_exams: number;
   rank: number;
 };
@@ -106,11 +104,6 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
-
-  console.log("Student state", student);
-  console.log("Chapters state", chapters.length);
-  console.log("Recent Exams", recentExams.length);
-  console.log("Top Students", topStudents.length);
 
   const loadChapters = async () => {
     const { data: chaptersData, error } = await supabase
@@ -198,8 +191,6 @@ export default function DashboardPage() {
         data: { user },
       } = await supabase.auth.getUser();
 
-      console.log("AUTH USER:", user);
-
       if (!user) {
         router.replace("/auth");
         return;
@@ -211,10 +202,6 @@ export default function DashboardPage() {
           .select("*")
           .eq("auth_id", user.id)
           .single();
-
-      console.log("USER ID:", user.id);
-      console.log("STUDENT:", studentData);
-      console.log("ERROR:", studentError);
 
       if (studentError || !studentData) {
         router.replace("/auth");
@@ -241,8 +228,6 @@ export default function DashboardPage() {
     init();
   }, []);
 
-  const points = Number(student?.points ?? 0);
-  const streak = Number(student?.streak ?? 0);
   const solvedExams = Number(student?.total_exams ?? 0);
 
   const totalLectures = chapters.reduce(
@@ -269,7 +254,6 @@ export default function DashboardPage() {
               <div className="space-y-4">
                 <div className="rounded-2xl bg-slate-900 border border-slate-800 p-5 h-24" />
                 <div className="rounded-2xl bg-slate-900 border border-slate-800 p-5 h-24" />
-                <div className="rounded-2xl bg-slate-900 border border-slate-800 p-5 h-24" />
               </div>
             </div>
             <div className="grid lg:grid-cols-5 gap-6">
@@ -294,7 +278,6 @@ export default function DashboardPage() {
 
   return (
     <div className="relative min-h-screen flex bg-slate-950 text-white overflow-hidden">
-
       {/* Background */}
       <div className="absolute inset-0 -z-10">
         <img
@@ -368,7 +351,7 @@ export default function DashboardPage() {
                 </h1>
 
                 <p className="mt-6 text-slate-300 text-lg leading-8">
-                  استمر في حل الامتحانات وجمع النقاط للوصول إلى قمة ترتيب BioPulse.
+                  استمر في حل الامتحانات وتحسين مستواك للوصول إلى قمة ترتيب BioPulse.
                 </p>
 
                 <div className="mt-8 flex gap-4">
@@ -397,21 +380,7 @@ export default function DashboardPage() {
                 </p>
               </FadeIn>
 
-              <FadeIn delay={0.1} className="space-y-4">
-                <div className="rounded-3xl border border-cyan-500/20 bg-[#081321]/90 backdrop-blur-xl p-6 transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_0_30px_rgba(34,211,238,0.25)]">
-                  <p className="text-slate-400">النقاط</p>
-                  <h2 className="mt-2 text-4xl font-bold text-cyan-400">
-                    <CountUp end={points} duration={2} />
-                  </h2>
-                </div>
-
-                <div className="rounded-3xl border border-orange-500/20 bg-[#081321]/90 backdrop-blur-xl p-6 transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_0_30px_rgba(251,146,60,0.25)]">
-                  <p className="text-slate-400">Streak</p>
-                  <h2 className="mt-2 text-4xl font-bold text-orange-400">
-                    <CountUp end={streak} duration={2} />
-                  </h2>
-                </div>
-
+              <FadeIn delay={0.1} className="space-y-4 flex flex-col justify-center">
                 <div className="rounded-3xl border border-pink-500/20 bg-[#081321]/90 backdrop-blur-xl p-6 transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_0_30px_rgba(236,72,153,0.25)]">
                   <p className="text-slate-400">الامتحانات</p>
                   <h2 className="mt-2 text-4xl font-bold text-pink-400">
@@ -506,11 +475,6 @@ export default function DashboardPage() {
                         duration={2}
                       />%
                     </span>
-                  </div>
-
-                  <div className="flex justify-between border-b border-slate-700 pb-2">
-                    <span>النقاط</span>
-                    <span><CountUp end={points} duration={2} /></span>
                   </div>
 
                   <div className="flex justify-between">

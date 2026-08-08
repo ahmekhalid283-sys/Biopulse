@@ -1,26 +1,36 @@
 "use client";
 
-import Link from "next/link";
-import { Suspense, useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import Link from "next/link";
+import { motion } from "framer-motion";
+import { Award, Clock, CheckCircle, XCircle, BarChart2 } from "lucide-react";
 
-function ResultsContent() {
+type AttemptDetails = {
+  score: number;
+  total: number;
+  percentage: number;
+  duration_seconds: number;
+  created_at: string;
+  exam_id: string;
+  exams: {
+    title: string;
+  }[];
+};
+
+export default function ResultsContent() {
   const { attemptId } = useParams<{ attemptId: string }>();
-  
-  const [score, setScore] = useState(0);
-  const [total, setTotal] = useState(0);
-  const [percentage, setPercentage] = useState(0);
-  const [attempt, setAttempt] = useState<any>(null);
+  const [attempt, setAttempt] = useState<AttemptDetails | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (attemptId) {
-      fetchAttemptDetails();
+      loadAttemptDetails();
     }
   }, [attemptId]);
 
-  async function fetchAttemptDetails() {
+  async function loadAttemptDetails() {
     const { data, error } = await supabase
       .from("exam_attempts")
       .select(`
@@ -29,6 +39,7 @@ function ResultsContent() {
         percentage,
         duration_seconds,
         created_at,
+        exam_id,
         exams(
           title
         )
@@ -37,151 +48,110 @@ function ResultsContent() {
       .single();
 
     if (error) {
-      console.error("Error fetching attempt details:", error.message);
-    } else if (data) {
-      setScore(data.score);
-      setTotal(data.total);
-      setPercentage(Number(data.percentage));
+      alert(error.message);
+    } else {
       setAttempt(data);
     }
     setLoading(false);
   }
 
-  console.log("Results AttemptId:", attemptId);
-
-  const passed = percentage >= 50;
+  const formatDuration = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins} دقيقة و ${secs} ثانية`;
+  };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center">
-        جاري تحميل النتائج...
-      </div>
+      <main className="min-h-screen bg-slate-950 flex items-center justify-center text-white">
+        <h2 className="text-3xl font-bold animate-pulse">جارٍ تحميل النتيجة...</h2>
+      </main>
+    );
+  }
+
+  if (!attempt) {
+    return (
+      <main className="min-h-screen bg-slate-950 flex items-center justify-center text-white">
+        <h2 className="text-3xl font-bold text-red-500">لم يتم العثور على تفاصيل النتيجة</h2>
+      </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-slate-950 text-white relative overflow-hidden">
-      <div className="absolute inset-0">
-        <img
-          src="/images/background.jpg"
-          className="w-full h-full object-cover opacity-10"
-          alt=""
-        />
-        <div className="absolute inset-0 bg-slate-950/90" />
-      </div>
-
-      <div className="relative max-w-4xl mx-auto py-16 px-6">
-        <div className="rounded-[35px] border border-cyan-500/20 bg-[#081321]/95 backdrop-blur-xl p-10 text-center">
-          
-          <div
-            className={`mx-auto mb-8 flex h-36 w-36 items-center justify-center rounded-full border-8 ${
-              passed
-                ? "border-green-500 bg-green-500/10"
-                : "border-red-500 bg-red-500/10"
-            }`}
-          >
-            <span
-              className={`text-5xl font-black ${
-                passed ? "text-green-400" : "text-red-400"
-              }`}
-            >
-              {percentage}%
-            </span>
-          </div>
-
-          <h1 className="text-5xl font-black">
-            {passed ? "أحسنت 👏" : "حاول مرة أخرى 💪"}
-          </h1>
-
-          <p className="mt-3 text-slate-400">
-            {passed
-              ? "لقد اجتزت الامتحان بنجاح"
-              : "لم تحصل على درجة النجاح"}
-          </p>
-
-          <div className="mt-10 grid md:grid-cols-2 lg:grid-cols-3 gap-5">
-            <div className="rounded-2xl bg-slate-900 p-6">
-              <p className="text-slate-400">الدرجة</p>
-              <h2 className="text-4xl mt-3 font-black text-cyan-400">
-                {score}
-              </h2>
-            </div>
-
-            <div className="rounded-2xl bg-slate-900 p-6">
-              <p className="text-slate-400">الدرجة الكلية</p>
-              <h2 className="text-4xl mt-3 font-black text-yellow-400">
-                {total}
-              </h2>
-            </div>
-
-            <div className="rounded-2xl bg-slate-900 p-6">
-              <p className="text-slate-400">الحالة</p>
-              <h2
-                className={`text-3xl mt-3 font-black ${
-                  passed ? "text-green-400" : "text-red-400"
-                }`}
-              >
-                {passed ? "ناجح" : "راسب"}
-              </h2>
-            </div>
-
-            <div className="rounded-2xl bg-slate-900 p-6">
-              <p className="text-slate-400">اسم الامتحان</p>
-              <h2 className="text-2xl mt-3 font-bold text-white">
-                {attempt?.exams?.title}
-              </h2>
-            </div>
-
-            <div className="rounded-2xl bg-slate-900 p-6">
-              <p className="text-slate-400">مدة الحل</p>
-              <h2 className="text-2xl mt-3 font-bold text-cyan-400">
-                {Math.floor((attempt?.duration_seconds || 0) / 60)} دقيقة
-              </h2>
-            </div>
-
-            <div className="rounded-2xl bg-slate-900 p-6">
-              <p className="text-slate-400">تاريخ الامتحان</p>
-              <h2 className="text-lg mt-3 font-bold text-yellow-400">
-                {attempt?.created_at &&
-                  new Date(attempt.created_at).toLocaleDateString("ar-EG")}
-              </h2>
-            </div>
-          </div>
-
-          <div className="mt-10 grid gap-4 md:grid-cols-2">
-            {attemptId && (
-              <Link
-                href={`/review/${attemptId}`}
-                className="rounded-2xl bg-cyan-600 py-5 text-xl font-black hover:bg-cyan-500 transition-all flex items-center justify-center"
-              >
-                مراجعة الامتحان
-              </Link>
-            )}
-
-            <Link
-              href="/dashboard"
-              className="rounded-xl bg-blue-600 py-4 font-bold hover:bg-blue-500 flex items-center justify-center"
-            >
-              لوحة الطالب
-            </Link>
-          </div>
-
-        </div>
-      </div>
-    </main>
-  );
-}
-
-export default function ResultsPage() {
-  return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center">
-          جاري التحميل...
-        </div>
-      }
+    <motion.main
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6 }}
+      className="min-h-screen bg-slate-950 text-white relative overflow-hidden p-6 lg:p-12"
     >
-      <ResultsContent />
-    </Suspense>
+      <div className="max-w-4xl mx-auto space-y-8">
+        <div className="bg-[#081321]/90 backdrop-blur-xl border border-cyan-500/20 rounded-3xl p-8 text-center space-y-4">
+          <Award className="w-20 h-20 text-yellow-400 mx-auto animate-bounce" />
+          <h1 className="text-4xl font-black">نتيجة الاختبار</h1>
+          <p className="text-cyan-400 text-xl font-bold">
+            {attempt?.exams?.[0]?.title || "BioPulse Exam"}
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-[#081321]/90 border border-cyan-500/20 rounded-2xl p-6 text-center space-y-2">
+            <BarChart2 className="w-8 h-8 text-cyan-400 mx-auto" />
+            <p className="text-slate-400">الدرجة النهائية</p>
+            <p className="text-3xl font-black text-cyan-300">
+              {attempt.score} / {attempt.total}
+            </p>
+          </div>
+
+          <div className="bg-[#081321]/90 border border-cyan-500/20 rounded-2xl p-6 text-center space-y-2">
+            <CheckCircle className="w-8 h-8 text-green-400 mx-auto" />
+            <p className="text-slate-400">النسبة المئوية</p>
+            <p className="text-3xl font-black text-green-300">
+              {Number(attempt.percentage).toFixed(1)}%
+            </p>
+          </div>
+
+          <div className="bg-[#081321]/90 border border-cyan-500/20 rounded-2xl p-6 text-center space-y-2">
+            <Clock className="w-8 h-8 text-orange-400 mx-auto" />
+            <p className="text-slate-400">الوقت المستغرق</p>
+            <p className="text-xl font-black text-orange-300">
+              {formatDuration(attempt.duration_seconds)}
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-10 grid gap-4 md:grid-cols-3">
+          {/* إعادة الامتحان */}
+          {attempt?.exam_id && (
+            <Link
+              href={`/exam/${attempt.exam_id}`}
+              className="group flex items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 py-5 text-xl font-black text-white shadow-[0_0_30px_rgba(6,182,212,0.25)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_45px_rgba(6,182,212,0.4)]"
+            >
+              <span className="text-2xl transition-transform duration-300 group-hover:rotate-180">
+                ↻
+              </span>
+              إعادة الامتحان
+            </Link>
+          )}
+
+          {/* مراجعة الامتحان */}
+          {attemptId && (
+            <Link
+              href={`/review/${attemptId}`}
+              className="flex items-center justify-center rounded-2xl border border-cyan-500/30 bg-cyan-500/10 py-5 text-xl font-black text-cyan-300 transition-all duration-300 hover:-translate-y-1 hover:bg-cyan-500/20"
+            >
+              مراجعة الامتحان
+            </Link>
+          )}
+
+          {/* لوحة الطالب */}
+          <Link
+            href="/dashboard"
+            className="flex items-center justify-center rounded-2xl bg-blue-600 py-5 text-xl font-bold text-white transition-all duration-300 hover:-translate-y-1 hover:bg-blue-500"
+          >
+            لوحة الطالب
+          </Link>
+        </div>
+      </div>
+    </motion.main>
   );
 }

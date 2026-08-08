@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
@@ -32,6 +32,7 @@ export default function ExamPage() {
   const router = useRouter();
   const [questions, setQuestions] = useState<Question[]>([]);
   const [answers, setAnswers] = useState<Record<string, string>>({});
+  const answersRef = useRef<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [studentId, setStudentId] = useState("");
@@ -64,7 +65,7 @@ export default function ExamPage() {
 
       if (remaining <= 0) {
         clearInterval(interval);
-        submitExam();
+        submitExam(true);
       }
     }, 1000);
 
@@ -160,10 +161,16 @@ export default function ExamPage() {
   }
 
   function chooseAnswer(questionId: string, answer: string) {
-    setAnswers((prev) => ({
-      ...prev,
-      [questionId]: answer,
-    }));
+    setAnswers((prev) => {
+      const updated = {
+        ...prev,
+        [questionId]: answer,
+      };
+
+      answersRef.current = updated;
+
+      return updated;
+    });
   }
 
   function nextQuestion() {
@@ -199,15 +206,16 @@ export default function ExamPage() {
     return "border-slate-700 text-slate-400 bg-slate-900/50";
   }
 
-  async function submitExam() {
+  async function submitExam(forceSubmit = false) {
     if (submitting) return;
 
     if (!studentId) {
-      alert("studentId فارغ");
+      alert("بيانات الطالب غير جاهزة");
       return;
     }
 
     if (
+      !forceSubmit &&
       Object.keys(answers).length !== questions.length &&
       timeLeft > 0
     ) {
@@ -217,23 +225,37 @@ export default function ExamPage() {
 
     setSubmitting(true);
 
+    const finalAnswers = answersRef.current;
     let calculatedScore = 0;
 
     questions.forEach((q) => {
-      if (answers[q.id] === q.correct_answer) {
+      if (finalAnswers[q.id] === q.correct_answer) {
         calculatedScore += q.marks;
       }
     });
 
-    const { data: examData } = await supabase
+    const { data: examData, error: examError } = await supabase
       .from("exams")
       .select("total_score")
       .eq("id", examId)
       .single();
 
+    if (examError) {
+      setSubmitting(false);
+      alert(examError.message);
+      return;
+    }
+
     const total = examData?.total_score ?? calculatedScore;
-    const percentage = total > 0 ? (calculatedScore / total) * 100 : 0;
-    const duration = Math.floor((Date.now() - startTime) / 1000);
+
+    const percentage =
+      total > 0
+        ? (calculatedScore / total) * 100
+        : 0;
+
+    const duration = Math.floor(
+      (Date.now() - startTime) / 1000
+    );
 
     const { data: insertedAttempt, error } = await supabase
       .from("exam_attempts")
@@ -259,64 +281,25 @@ export default function ExamPage() {
     const answersToInsert = questions.map((q) => ({
       attempt_id: insertedAttempt.id,
       question_id: q.id,
-      student_answer: answers[q.id] || null,
-      is_correct: answers[q.id] === q.correct_answer,
+      student_answer: finalAnswers[q.id] || null,
+      is_correct: finalAnswers[q.id] === q.correct_answer,
     }));
 
-    const { data: insertedAnswers, error: answersError } = await supabase
+    const { error: answersError } = await supabase
       .from("exam_answers")
-      .insert(answersToInsert)
-      .select();
-    
-    console.log("answersToInsert:", answersToInsert);
-    console.log("insertedAnswers:", insertedAnswers);
-    console.log("answersError:", answersError);
-    
+      .insert(answersToInsert);
+
     if (answersError) {
-      alert(answersError.message);
       setSubmitting(false);
+      alert(answersError.message);
       return;
     }
-
-    const { data: attempts } = await supabase
-      .from("exam_attempts")
-      .select("percentage")
-      .eq("student_id", studentId);
-
-    if (attempts) {
-      const totalExams = attempts.length;
-      const averageScore =
-        attempts.reduce((sum, a) => sum + Number(a.percentage), 0) / totalExams;
-
-      await supabase
-        .from("students")
-        .update({
-          total_exams: totalExams,
-          average_score: Number(averageScore.toFixed(2)),
-        })
-        .eq("id", studentId);
-    }
-
-    const { data: studentsList } = await supabase
-      .from("students")
-      .select("id, average_score")
-      .order("average_score", { ascending: false });
-
-    if (studentsList) {
-      for (let i = 0; i < studentsList.length; i++) {
-        await supabase
-          .from("students")
-          .update({ rank: i + 1 })
-          .eq("id", studentsList[i].id);
-      }
-    }
-
-    setSubmitting(false);
 
     localStorage.removeItem(`exam_end_${examId}`);
     localStorage.removeItem(`exam_start_${examId}`);
 
-    console.log("Inserted Attempt:", insertedAttempt);
+    setSubmitting(false);
+
     router.push(`/results/${insertedAttempt.id}`);
   }
 
@@ -367,7 +350,7 @@ export default function ExamPage() {
       </div>
 
       <div className="max-w-6xl mx-auto space-y-8">
-        <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-[#081321]/90 backdrop-blur-xl border border-cyan-500/20 rounded-3xl p-6">
+        <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-[#081321]/90 backdrop-blur-xl border border-cyan-500/25 rounded-3xl p-6">
           <div>
             <h1 className="text-5xl font-black">BioPulse Exam</h1>
             <p className="mt-3 text-slate-400">Biology Online Assessment</p>
@@ -504,7 +487,7 @@ export default function ExamPage() {
                     </Button>
                   ) : (
                     <Button
-                      onClick={submitExam}
+                      onClick={() => submitExam()}
                       disabled={submitting || !studentId}
                       className="rounded-xl bg-red-600 hover:bg-red-700 text-white px-8 font-bold shadow-[0_0_30px_rgba(255,0,0,.3)] disabled:opacity-50"
                     >
