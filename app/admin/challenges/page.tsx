@@ -17,6 +17,8 @@ import {
   Pencil,
   Trash2,
   ClipboardList,
+  Lock,
+  Unlock,
 } from "lucide-react";
 
 type Challenge = {
@@ -49,6 +51,8 @@ export default function AdminChallengesPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [challengesEnabled, setChallengesEnabled] = useState<boolean>(true);
+  const [togglingStatus, setTogglingStatus] = useState<boolean>(false);
 
   const [filter, setFilter] = useState<"all" | "individual" | "team">("all");
 
@@ -99,9 +103,43 @@ export default function AdminChallengesPage() {
     }
   }
 
+  async function loadPlatformStatus() {
+    const { data } = await supabase
+      .from("platform_settings")
+      .select("value")
+      .eq("key", "challenges_enabled")
+      .maybeSingle();
+
+    if (data) {
+      setChallengesEnabled(data.value === true || data.value === "true");
+    }
+  }
+
   useEffect(() => {
     loadChallenges();
+    loadPlatformStatus();
   }, [filter]);
+
+  async function toggleChallenges() {
+    try {
+      setTogglingStatus(true);
+      const next = !challengesEnabled;
+
+      const { error } = await supabase
+        .from("platform_settings")
+        .upsert({ key: "challenges_enabled", value: next });
+
+      if (error) {
+        alert("حدث خطأ أثناء تحديث حالة التحديات: " + error.message);
+        return;
+      }
+
+      setChallengesEnabled(next);
+      alert(next ? "تم فتح التحديات للطلاب بنجاح" : "تم قفل التحديات بنجاح");
+    } finally {
+      setTogglingStatus(false);
+    }
+  }
 
   async function deleteChallenge(id: string) {
     const confirmed = confirm(
@@ -226,7 +264,29 @@ export default function AdminChallengesPage() {
             </div>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={toggleChallenges}
+              disabled={togglingStatus}
+              className={`inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold shadow-sm transition disabled:opacity-50 ${
+                challengesEnabled
+                  ? "border border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100"
+                  : "border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+              }`}
+            >
+              {challengesEnabled ? (
+                <>
+                  <Lock className="h-4 w-4" />
+                  قفل التحديات عن الطلاب
+                </>
+              ) : (
+                <>
+                  <Unlock className="h-4 w-4" />
+                  فتح التحديات للطلاب
+                </>
+              )}
+            </button>
+
             <button
               onClick={loadChallenges}
               disabled={refreshing}

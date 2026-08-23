@@ -201,7 +201,7 @@ export default function EditChallengePage() {
                 value={form.title}
                 onChange={(e) => setForm({ ...form, title: e.target.value })}
                 placeholder="مثال: تحدي البيولوجيا الجزيئية - الموسم الأول"
-                className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-slate-950 focus:outline-none"
+                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-slate-950 focus:outline-none"
                 required
               />
             </div>
@@ -217,7 +217,7 @@ export default function EditChallengePage() {
                 }
                 placeholder="اكتب وصفاً مختصراً لأهداف التحدي..."
                 rows={3}
-                className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-slate-950 focus:outline-none"
+                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-slate-950 focus:outline-none"
               />
             </div>
 
@@ -234,7 +234,7 @@ export default function EditChallengePage() {
                       challenge_type: e.target.value as "individual" | "team",
                     })
                   }
-                  className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-slate-950 focus:outline-none bg-white"
+                  className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-900 focus:border-slate-950 focus:outline-none bg-white"
                 >
                   <option value="individual">فردي (طالب ضد طالب)</option>
                   <option value="team">جماعي (فرق)</option>
@@ -250,7 +250,7 @@ export default function EditChallengePage() {
                   onChange={(e) =>
                     setForm({ ...form, difficulty: e.target.value })
                   }
-                  className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-slate-950 focus:outline-none bg-white"
+                  className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-900 focus:border-slate-950 focus:outline-none bg-white"
                 >
                   <option value="سهل">سهل</option>
                   <option value="متوسط">متوسط</option>
@@ -278,7 +278,7 @@ export default function EditChallengePage() {
                   onChange={(e) =>
                     setForm({ ...form, registration_start: e.target.value })
                   }
-                  className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-slate-950 focus:outline-none"
+                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-slate-950 focus:outline-none"
                 />
               </div>
 
@@ -292,7 +292,7 @@ export default function EditChallengePage() {
                   onChange={(e) =>
                     setForm({ ...form, registration_end: e.target.value })
                   }
-                  className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-slate-950 focus:outline-none"
+                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-slate-950 focus:outline-none"
                 />
               </div>
 
@@ -306,7 +306,7 @@ export default function EditChallengePage() {
                   onChange={(e) =>
                     setForm({ ...form, start_at: e.target.value })
                   }
-                  className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-slate-950 focus:outline-none"
+                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-slate-950 focus:outline-none"
                 />
               </div>
 
@@ -320,7 +320,7 @@ export default function EditChallengePage() {
                   onChange={(e) =>
                     setForm({ ...form, end_at: e.target.value })
                   }
-                  className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-slate-950 focus:outline-none"
+                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-slate-950 focus:outline-none"
                 />
               </div>
             </div>
@@ -346,7 +346,7 @@ export default function EditChallengePage() {
                       duration_minutes: Number(e.target.value),
                     })
                   }
-                  className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-slate-950 focus:outline-none"
+                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-slate-950 focus:outline-none"
                 />
               </div>
 
@@ -363,7 +363,7 @@ export default function EditChallengePage() {
                       passing_score: Number(e.target.value),
                     })
                   }
-                  className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-slate-950 focus:outline-none"
+                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-slate-950 focus:outline-none"
                 />
               </div>
             </div>
@@ -383,7 +383,7 @@ export default function EditChallengePage() {
                         min_team_size: Number(e.target.value),
                       })
                     }
-                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-slate-950 focus:outline-none"
+                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-slate-950 focus:outline-none"
                   />
                 </div>
                 <div>
@@ -399,7 +399,7 @@ export default function EditChallengePage() {
                         max_team_size: Number(e.target.value),
                       })
                     }
-                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-slate-950 focus:outline-none"
+                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-slate-950 focus:outline-none"
                   />
                 </div>
               </div>

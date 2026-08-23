@@ -14,6 +14,8 @@ import {
   Menu,
   X,
   MessageCircle,
+  Swords,
+  Lock,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
@@ -30,38 +32,30 @@ export default function Sidebar({
   const router = useRouter();
 
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [challengesEnabled, setChallengesEnabled] = useState(true);
+
+  useEffect(() => {
+    async function loadChallengesStatus() {
+      const { data } = await supabase
+        .from("platform_settings")
+        .select("value")
+        .eq("key", "challenges_enabled")
+        .maybeSingle();
+      if (data) {
+        setChallengesEnabled(data.value === true || data.value === "true");
+      }
+    }
+    loadChallengesStatus();
+  }, []);
 
   const links = [
-    {
-      href: "/dashboard",
-      label: "الصفحة الرئيسية",
-      icon: LayoutDashboard,
-    },
-    {
-      href: "/chapters",
-      label: "الفصول",
-      icon: BookOpen,
-    },
-    {
-      href: "/results",
-      label: "النتائج",
-      icon: Trophy,
-    },
-    {
-      href: "/profile",
-      label: "الملف الشخصي",
-      icon: User,
-    },
-    {
-      href: "/support",
-      label: "الدعم العلمي",
-      icon: MessageCircle,
-    },
-    {
-      href: "/settings",
-      label: "الإعدادات",
-      icon: Settings,
-    },
+    { href: "/dashboard", label: "الصفحة الرئيسية", icon: LayoutDashboard },
+    { href: "/chapters", label: "الفصول", icon: BookOpen },
+    { href: "/challenges", label: "تحديات BioPulse", icon: Swords, locked: !challengesEnabled },
+    { href: "/results", label: "النتائج", icon: Trophy },
+    { href: "/profile", label: "الملف الشخصي", icon: User },
+    { href: "/support", label: "الدعم العلمي", icon: MessageCircle },
+    { href: "/settings", label: "الإعدادات", icon: Settings },
   ];
 
   // قفل القائمة عند تغيير الصفحة
@@ -92,7 +86,6 @@ export default function Sidebar({
       {/* =====================================================
           Mobile Menu Button
       ===================================================== */}
-
       <button
         type="button"
         onClick={() => setMobileOpen(true)}
@@ -126,7 +119,6 @@ export default function Sidebar({
       {/* =====================================================
           Mobile Overlay
       ===================================================== */}
-
       {mobileOpen && (
         <button
           type="button"
@@ -146,7 +138,6 @@ export default function Sidebar({
       {/* =====================================================
           Sidebar
       ===================================================== */}
-
       <aside
         className={`
           fixed
@@ -180,7 +171,6 @@ export default function Sidebar({
         {/* =====================================================
             Mobile Close Button
         ===================================================== */}
-
         <div className="mb-2 flex items-center justify-end lg:hidden">
           <button
             type="button"
@@ -209,7 +199,6 @@ export default function Sidebar({
         {/* =====================================================
             Logo
         ===================================================== */}
-
         <div className="flex items-center gap-3">
           <div
             className="
@@ -242,7 +231,6 @@ export default function Sidebar({
         {/* =====================================================
             Student
         ===================================================== */}
-
         <div
           className="
             mt-6
@@ -292,57 +280,39 @@ export default function Sidebar({
         {/* =====================================================
             Navigation
         ===================================================== */}
-
         <nav className="mt-6 flex-1 space-y-2">
           {links.map((link) => {
             const Icon = link.icon;
+            const active = pathname === link.href || pathname.startsWith(`${link.href}/`);
+            const isLocked = (link as any).locked;
 
-            const active =
-              pathname === link.href ||
-              pathname.startsWith(`${link.href}/`);
+            if (isLocked) {
+              return (
+                <div
+                  key={link.href}
+                  className="flex w-full cursor-not-allowed items-center gap-3 rounded-xl px-4 py-3.5 text-slate-500 opacity-70"
+                  title="التحديات مقفلة حاليًا"
+                >
+                  <Icon size={20} className="shrink-0" />
+                  <span className="truncate font-medium">{link.label}</span>
+                  <Lock size={16} className="mr-auto" />
+                </div>
+              );
+            }
 
             return (
               <Link
                 key={link.href}
                 href={link.href}
                 onClick={() => setMobileOpen(false)}
-                className={`
-                  group
-                  flex
-                  w-full
-                  items-center
-                  gap-3
-                  rounded-xl
-                  px-4
-                  py-3.5
-                  transition-all
-                  duration-300
-                  ${
-                    active
-                      ? `
-                        border
-                        border-cyan-400
-                        bg-cyan-500/20
-                        text-cyan-300
-                        shadow-lg
-                        shadow-cyan-950/20
-                      `
-                      : `
-                        text-slate-300
-                        hover:bg-slate-800
-                        hover:text-cyan-300
-                      `
-                  }
-                `}
+                className={`group flex w-full items-center gap-3 rounded-xl px-4 py-3.5 transition-all duration-300 ${
+                  active
+                    ? "border border-cyan-400 bg-cyan-500/20 text-cyan-300 shadow-lg shadow-cyan-950/20"
+                    : "text-slate-300 hover:bg-slate-800 hover:text-cyan-300"
+                }`}
               >
-                <Icon
-                  size={20}
-                  className="shrink-0"
-                />
-
-                <span className="truncate font-medium">
-                  {link.label}
-                </span>
+                <Icon size={20} className="shrink-0" />
+                <span className="truncate font-medium">{link.label}</span>
               </Link>
             );
           })}
@@ -351,7 +321,6 @@ export default function Sidebar({
         {/* =====================================================
             Logout
         ===================================================== */}
-
         <button
           type="button"
           onClick={logout}

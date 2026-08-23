@@ -129,7 +129,7 @@ export default function ChallengeQuestionsPage() {
                 }
                 placeholder="اكتب السؤال هنا..."
                 rows={3}
-                className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-slate-950 focus:outline-none"
+                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-slate-950 focus:outline-none"
                 required
               />
             </div>
@@ -150,7 +150,7 @@ export default function ChallengeQuestionsPage() {
                         | "essay",
                     })
                   }
-                  className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-slate-950 focus:outline-none bg-white"
+                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-slate-950 focus:outline-none"
                 >
                   <option value="mcq">اختيار من متعدد (MCQ)</option>
                   <option value="true_false">صح وخطأ</option>
@@ -171,7 +171,7 @@ export default function ChallengeQuestionsPage() {
                       points: Number(e.target.value),
                     })
                   }
-                  className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-slate-950 focus:outline-none"
+                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-slate-950 focus:outline-none"
                 />
               </div>
             </div>
@@ -193,7 +193,7 @@ export default function ChallengeQuestionsPage() {
                         setNewQuestion({ ...newQuestion, options: newOpts });
                       }}
                       placeholder={`الخيار ${idx + 1}`}
-                      className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-slate-950 focus:outline-none"
+                      className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 focus:border-slate-950 focus:outline-none"
                     />
                   ))}
                 </div>
@@ -226,7 +226,7 @@ export default function ChallengeQuestionsPage() {
                     ? "اكتب 'صح' أو 'خطأ'"
                     : "اكتب النص المطابق تماماً للإجابة الصحيحة"
                 }
-                className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-slate-950 focus:outline-none"
+                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-slate-950 focus:outline-none"
                 required={newQuestion.question_type !== "essay"}
               />
             </div>
