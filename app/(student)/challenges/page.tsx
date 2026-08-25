@@ -45,8 +45,10 @@ export default function StudentChallengesPage() {
 
     const { data } = await supabase
       .from("challenges")
-      .select("id, title, description, challenge_type, difficulty, status, start_at, end_at")
-      .in("status", ["published", "active", "ongoing"])
+      .select(
+        "id, title, description, challenge_type, difficulty, status, start_at, end_at"
+      )
+      .in("status", ["registration", "upcoming", "active"])
       .order("created_at", { ascending: false });
 
     setChallenges(data || []);
@@ -55,7 +57,10 @@ export default function StudentChallengesPage() {
 
   if (loading) {
     return (
-      <main dir="rtl" className="flex min-h-screen items-center justify-center bg-slate-950 text-white">
+      <main
+        dir="rtl"
+        className="flex min-h-screen items-center justify-center bg-slate-950 text-white"
+      >
         جاري التحميل...
       </main>
     );
@@ -63,7 +68,10 @@ export default function StudentChallengesPage() {
 
   if (!enabled) {
     return (
-      <main dir="rtl" className="flex min-h-screen flex-col items-center justify-center bg-slate-950 p-6 text-white">
+      <main
+        dir="rtl"
+        className="flex min-h-screen flex-col items-center justify-center bg-slate-950 p-6 text-white"
+      >
         <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-slate-800 text-slate-400">
           <Lock className="h-10 w-10" />
         </div>
@@ -74,7 +82,10 @@ export default function StudentChallengesPage() {
   }
 
   return (
-    <main dir="rtl" className="min-h-screen bg-slate-950 p-4 text-white sm:p-6 lg:p-8">
+    <main
+      dir="rtl"
+      className="min-h-screen bg-slate-950 p-4 text-white sm:p-6 lg:p-8"
+    >
       <div className="mx-auto max-w-6xl space-y-8">
         <div className="flex items-center gap-4">
           <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-cyan-500/15 text-cyan-400">
@@ -82,7 +93,9 @@ export default function StudentChallengesPage() {
           </div>
           <div>
             <h1 className="text-3xl font-bold">تحديات BioPulse</h1>
-            <p className="mt-1 text-sm text-slate-400">تنافس وتعلم واربح الجوائز</p>
+            <p className="mt-1 text-sm text-slate-400">
+              تنافس وتعلم واربح الجوائز
+            </p>
           </div>
         </div>
 

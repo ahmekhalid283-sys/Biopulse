@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { Trophy, ChevronLeft, Save, ArrowRight } from "lucide-react";
+import { ChevronLeft, Save, ArrowRight } from "lucide-react";
 
 export default function EditChallengePage() {
   const router = useRouter();
@@ -18,7 +18,6 @@ export default function EditChallengePage() {
     description: "",
     challenge_type: "individual" as "individual" | "team",
     difficulty: "متوسط",
-    category: "البيولوجيا الجزيئية",
     registration_start: "",
     registration_end: "",
     start_at: "",
@@ -32,7 +31,6 @@ export default function EditChallengePage() {
     max_team_size: 4,
   });
 
-  // تحويل التاريخ من قاعدة البيانات لصيغة datetime-local
   function toLocalInput(value: string | null) {
     if (!value) return "";
     const date = new Date(value);
@@ -62,7 +60,6 @@ export default function EditChallengePage() {
             description: data.description || "",
             challenge_type: data.challenge_type || "individual",
             difficulty: data.difficulty || "متوسط",
-            category: data.category || "البيولوجيا الجزيئية",
             registration_start: toLocalInput(data.registration_start),
             registration_end: toLocalInput(data.registration_end),
             start_at: toLocalInput(data.start_at),
@@ -101,8 +98,8 @@ export default function EditChallengePage() {
       const { error } = await supabase
         .from("challenges")
         .update({
-          title: form.title,
-          description: form.description,
+          title: form.title.trim(),
+          description: form.description.trim() || null,
           challenge_type: form.challenge_type,
           difficulty: form.difficulty,
           registration_start: form.registration_start || null,
@@ -122,12 +119,12 @@ export default function EditChallengePage() {
         .eq("id", challengeId);
 
       if (error) {
-        console.error("Supabase Error:", JSON.stringify(error, null, 2));
-        alert(`خطأ من قاعدة البيانات: ${error.message}`);
+        console.error(error);
+        alert("خطأ: " + error.message);
         return;
       }
 
-      alert("تم تحديث التحدي بنجاح!");
+      alert("تم تحديث التحدي بنجاح");
       router.push(`/admin/challenges/${challengeId}`);
     } catch (err: any) {
       alert("حدث خطأ غير متوقع: " + err.message);
@@ -140,90 +137,78 @@ export default function EditChallengePage() {
     return (
       <main
         dir="rtl"
-        className="min-h-screen bg-[#f7f8fa] flex items-center justify-center"
+        className="flex min-h-screen items-center justify-center bg-[#070b14] text-white"
       >
-        <div className="text-center">
-          <div className="animate-spin h-8 w-8 border-4 border-slate-300 border-t-slate-950 rounded-full mx-auto mb-4"></div>
-          <p className="text-slate-500 font-bold">جاري تحميل بيانات التحدي...</p>
-        </div>
+        <p className="font-bold text-slate-400">جاري تحميل بيانات التحدي...</p>
       </main>
     );
   }
 
   return (
-    <main dir="rtl" className="min-h-screen bg-[#f7f8fa] p-6 sm:p-8">
+    <main dir="rtl" className="min-h-screen bg-[#070b14] p-6 text-white sm:p-8">
       <div className="mx-auto max-w-4xl space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <div className="mb-2 flex items-center gap-2 text-sm text-slate-400">
-              <span>BioPulse</span>
+            <div className="mb-2 flex items-center gap-2 text-sm text-slate-500">
+              <span className="text-blue-400">BioPulse</span>
               <ChevronLeft className="h-4 w-4" />
               <span
-                className="cursor-pointer hover:text-slate-600"
+                className="cursor-pointer hover:text-slate-300"
                 onClick={() => router.push("/admin/challenges")}
               >
-                تحديات BioPulse
+                التحديات
               </span>
               <ChevronLeft className="h-4 w-4" />
-              <span>تعديل التحدي</span>
+              <span>تعديل</span>
             </div>
-            <h1 className="text-3xl font-black tracking-tight text-slate-950">
-              تعديل التحدي
-            </h1>
+            <h1 className="text-3xl font-bold">تعديل التحدي</h1>
           </div>
 
           <button
             onClick={() => router.back()}
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50"
+            className="inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-900 px-4 py-2.5 text-sm font-bold text-slate-300 hover:bg-slate-800"
           >
             <ArrowRight className="h-4 w-4" />
-            العودة
+            رجوع
           </button>
         </div>
 
-        {/* Form */}
-        <form
-          onSubmit={handleSubmit}
-          className="space-y-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8"
-        >
-          <div className="space-y-4">
-            <h2 className="text-lg font-black text-slate-900 border-b border-slate-100 pb-3">
-              المعلومات الأساسية
-            </h2>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Basic */}
+          <section className="space-y-4 rounded-2xl border border-slate-800 bg-slate-900/50 p-6">
+            <h2 className="text-lg font-bold">المعلومات الأساسية</h2>
 
             <div>
-              <label className="block text-sm font-bold text-slate-700 mb-1">
+              <label className="mb-1 block text-sm font-bold text-slate-400">
                 عنوان التحدي *
               </label>
               <input
                 type="text"
                 value={form.title}
                 onChange={(e) => setForm({ ...form, title: e.target.value })}
-                placeholder="مثال: تحدي البيولوجيا الجزيئية - الموسم الأول"
-                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-slate-950 focus:outline-none"
                 required
+                className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-sm text-white outline-none focus:border-blue-500"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-bold text-slate-700 mb-1">
-                وصف التحدي
+              <label className="mb-1 block text-sm font-bold text-slate-400">
+                الوصف
               </label>
               <textarea
                 value={form.description}
                 onChange={(e) =>
                   setForm({ ...form, description: e.target.value })
                 }
-                placeholder="اكتب وصفاً مختصراً لأهداف التحدي..."
                 rows={3}
-                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-slate-950 focus:outline-none"
+                className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-sm text-white outline-none focus:border-blue-500"
               />
             </div>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1">
+                <label className="mb-1 block text-sm font-bold text-slate-400">
                   نوع التحدي
                 </label>
                 <select
@@ -234,15 +219,15 @@ export default function EditChallengePage() {
                       challenge_type: e.target.value as "individual" | "team",
                     })
                   }
-                  className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-900 focus:border-slate-950 focus:outline-none bg-white"
+                  className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-sm text-white outline-none focus:border-blue-500"
                 >
-                  <option value="individual">فردي (طالب ضد طالب)</option>
-                  <option value="team">جماعي (فرق)</option>
+                  <option value="individual">فردي</option>
+                  <option value="team">جماعي</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1">
+                <label className="mb-1 block text-sm font-bold text-slate-400">
                   مستوى الصعوبة
                 </label>
                 <select
@@ -250,7 +235,7 @@ export default function EditChallengePage() {
                   onChange={(e) =>
                     setForm({ ...form, difficulty: e.target.value })
                   }
-                  className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-900 focus:border-slate-950 focus:outline-none bg-white"
+                  className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-sm text-white outline-none focus:border-blue-500"
                 >
                   <option value="سهل">سهل</option>
                   <option value="متوسط">متوسط</option>
@@ -259,17 +244,15 @@ export default function EditChallengePage() {
                 </select>
               </div>
             </div>
-          </div>
+          </section>
 
           {/* Timings */}
-          <div className="space-y-4 pt-4 border-t border-slate-100">
-            <h2 className="text-lg font-black text-slate-900 border-b border-slate-100 pb-3">
-              المواعيد والتوقيتات
-            </h2>
+          <section className="space-y-4 rounded-2xl border border-slate-800 bg-slate-900/50 p-6">
+            <h2 className="text-lg font-bold">المواعيد</h2>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1">
+                <label className="mb-1 block text-sm font-bold text-slate-400">
                   بداية التسجيل
                 </label>
                 <input
@@ -278,12 +261,11 @@ export default function EditChallengePage() {
                   onChange={(e) =>
                     setForm({ ...form, registration_start: e.target.value })
                   }
-                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-slate-950 focus:outline-none"
+                  className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-sm text-white outline-none focus:border-blue-500"
                 />
               </div>
-
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1">
+                <label className="mb-1 block text-sm font-bold text-slate-400">
                   نهاية التسجيل
                 </label>
                 <input
@@ -292,13 +274,12 @@ export default function EditChallengePage() {
                   onChange={(e) =>
                     setForm({ ...form, registration_end: e.target.value })
                   }
-                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-slate-950 focus:outline-none"
+                  className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-sm text-white outline-none focus:border-blue-500"
                 />
               </div>
-
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1">
-                  بداية الاختبار/التحدي
+                <label className="mb-1 block text-sm font-bold text-slate-400">
+                  بداية التحدي
                 </label>
                 <input
                   type="datetime-local"
@@ -306,12 +287,11 @@ export default function EditChallengePage() {
                   onChange={(e) =>
                     setForm({ ...form, start_at: e.target.value })
                   }
-                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-slate-950 focus:outline-none"
+                  className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-sm text-white outline-none focus:border-blue-500"
                 />
               </div>
-
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1">
+                <label className="mb-1 block text-sm font-bold text-slate-400">
                   نهاية التحدي
                 </label>
                 <input
@@ -320,25 +300,24 @@ export default function EditChallengePage() {
                   onChange={(e) =>
                     setForm({ ...form, end_at: e.target.value })
                   }
-                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-slate-950 focus:outline-none"
+                  className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-sm text-white outline-none focus:border-blue-500"
                 />
               </div>
             </div>
-          </div>
+          </section>
 
-          {/* Settings & Rules */}
-          <div className="space-y-4 pt-4 border-t border-slate-100">
-            <h2 className="text-lg font-black text-slate-900 border-b border-slate-100 pb-3">
-              إعدادات الاختبار
-            </h2>
+          {/* Settings */}
+          <section className="space-y-4 rounded-2xl border border-slate-800 bg-slate-900/50 p-6">
+            <h2 className="text-lg font-bold">إعدادات الاختبار</h2>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1">
-                  مدة الاختبار (بالدقائق)
+                <label className="mb-1 block text-sm font-bold text-slate-400">
+                  المدة (دقيقة)
                 </label>
                 <input
                   type="number"
+                  min={1}
                   value={form.duration_minutes}
                   onChange={(e) =>
                     setForm({
@@ -346,16 +325,17 @@ export default function EditChallengePage() {
                       duration_minutes: Number(e.target.value),
                     })
                   }
-                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-slate-950 focus:outline-none"
+                  className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-sm text-white outline-none focus:border-blue-500"
                 />
               </div>
-
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1">
-                  درجة النجاح (%)
+                <label className="mb-1 block text-sm font-bold text-slate-400">
+                  درجة النجاح %
                 </label>
                 <input
                   type="number"
+                  min={0}
+                  max={100}
                   value={form.passing_score}
                   onChange={(e) =>
                     setForm({
@@ -363,19 +343,20 @@ export default function EditChallengePage() {
                       passing_score: Number(e.target.value),
                     })
                   }
-                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-slate-950 focus:outline-none"
+                  className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-sm text-white outline-none focus:border-blue-500"
                 />
               </div>
             </div>
 
             {form.challenge_type === "team" && (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 pt-2">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-1">
-                    الحد الأدنى لأعضاء الفريق
+                  <label className="mb-1 block text-sm font-bold text-slate-400">
+                    الحد الأدنى للفريق
                   </label>
                   <input
                     type="number"
+                    min={1}
                     value={form.min_team_size}
                     onChange={(e) =>
                       setForm({
@@ -383,15 +364,16 @@ export default function EditChallengePage() {
                         min_team_size: Number(e.target.value),
                       })
                     }
-                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-slate-950 focus:outline-none"
+                    className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-sm text-white outline-none focus:border-blue-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-1">
-                    الحد الأقصى لأعضاء الفريق
+                  <label className="mb-1 block text-sm font-bold text-slate-400">
+                    الحد الأقصى للفريق
                   </label>
                   <input
                     type="number"
+                    min={1}
                     value={form.max_team_size}
                     onChange={(e) =>
                       setForm({
@@ -399,71 +381,48 @@ export default function EditChallengePage() {
                         max_team_size: Number(e.target.value),
                       })
                     }
-                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-slate-950 focus:outline-none"
+                    className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-sm text-white outline-none focus:border-blue-500"
                   />
                 </div>
               </div>
             )}
 
             <div className="space-y-3 pt-2">
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={form.allow_retake}
-                  onChange={(e) =>
-                    setForm({ ...form, allow_retake: e.target.checked })
-                  }
-                  className="h-4 w-4 rounded border-slate-300 text-slate-950 focus:ring-slate-950"
-                />
-                <span className="text-sm font-bold text-slate-700">
-                  السماح بإعادة المحاولة
-                </span>
-              </label>
-
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={form.public_results}
-                  onChange={(e) =>
-                    setForm({ ...form, public_results: e.target.checked })
-                  }
-                  className="h-4 w-4 rounded border-slate-300 text-slate-950 focus:ring-slate-950"
-                />
-                <span className="text-sm font-bold text-slate-700">
-                  إظهار النتائج العامة للطلاب
-                </span>
-              </label>
-
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={form.show_leaderboard}
-                  onChange={(e) =>
-                    setForm({ ...form, show_leaderboard: e.target.checked })
-                  }
-                  className="h-4 w-4 rounded border-slate-300 text-slate-950 focus:ring-slate-950"
-                />
-                <span className="text-sm font-bold text-slate-700">
-                  تفعيل لوحة الترتيب (Leaderboard)
-                </span>
-              </label>
+              {[
+                { key: "allow_retake", label: "السماح بإعادة المحاولة" },
+                { key: "public_results", label: "إظهار النتائج للطلاب" },
+                { key: "show_leaderboard", label: "تفعيل لوحة المتصدرين" },
+              ].map((item) => (
+                <label
+                  key={item.key}
+                  className="flex cursor-pointer items-center gap-3"
+                >
+                  <input
+                    type="checkbox"
+                    checked={(form as any)[item.key]}
+                    onChange={(e) =>
+                      setForm({ ...form, [item.key]: e.target.checked })
+                    }
+                    className="h-4 w-4 rounded"
+                  />
+                  <span className="text-sm">{item.label}</span>
+                </label>
+              ))}
             </div>
-          </div>
+          </section>
 
-          {/* Submit Button */}
-          <div className="pt-6 border-t border-slate-100 flex justify-end gap-3">
+          <div className="flex justify-end gap-3">
             <button
               type="button"
               onClick={() => router.back()}
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-6 py-3 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50"
+              className="rounded-xl border border-slate-700 bg-slate-900 px-6 py-3 text-sm font-bold text-slate-300 hover:bg-slate-800"
             >
               إلغاء
             </button>
-
             <button
               type="submit"
               disabled={saving}
-              className="inline-flex items-center gap-2 rounded-xl bg-slate-950 px-6 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-slate-800 disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-3 text-sm font-bold text-white hover:bg-blue-500 disabled:opacity-50"
             >
               <Save className="h-4 w-4" />
               {saving ? "جاري الحفظ..." : "حفظ التعديلات"}
