@@ -1,11 +1,31 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { Plus, ArrowRight } from "lucide-react";
+import {
+  ArrowRight,
+  Plus,
+  Pencil,
+  Trash2,
+  HelpCircle,
+  ClipboardList,
+} from "lucide-react";
 
 type QuestionType = "mcq" | "true_false" | "written";
+
+type Question = {
+  id: string;
+  question: string;
+  question_type: QuestionType;
+  option_a: string;
+  option_b: string;
+  option_c: string;
+  option_d: string;
+  correct_answer: string;
+  marks: number;
+  explanation: string | null;
+};
 
 export default function ChallengeQuestionsPage() {
   const router = useRouter();
@@ -15,6 +35,10 @@ export default function ChallengeQuestionsPage() {
   const challengeId = params.id as string;
   const roundId = searchParams.get("roundId");
 
+  const [loading, setLoading] = useState(true);
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [roundTitle, setRoundTitle] = useState("");
+  const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const [form, setForm] = useState({
@@ -30,20 +54,61 @@ export default function ChallengeQuestionsPage() {
     difficulty: "متوسط",
   });
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  useEffect(() => {
+    loadQuestions();
+  }, [challengeId, roundId]);
 
-    if (!form.question.trim()) {
-      alert("يرجى إدخال نص السؤال");
-      return;
-    }
+  async function loadQuestions() {
+    try {
+      setLoading(true);
 
-    // تحقق حسب النوع
-    if (form.question_type === "mcq") {
-      if (!form.option_a.trim() || !form.option_b.trim()) {
-        alert("في أسئلة الاختيار من متعدد: الخيار A و B مطلوبين");
-        return;
+      if (roundId) {
+        const { data: round } = await supabase
+          .from("challenge_rounds")
+          .select("title")
+          .eq("id", roundId)
+          .maybeSingle();
+        setRoundTitle(round?.title || "");
+
+        const { data: links } = await supabase
+          .from("challenge_round_questions")
+          .select("question_id, question_order")
+          .eq("round_id", roundId)
+          .order("question_order", { ascending: true });
+
+        if (!links?.length) {
+          setQuestions([]);
+          return;
+        }
+
+        const ids = links.map((l) => l.question_id);
+        const { data } = await supabase
+          .from("challenge_questions")
+          .select("*")
+          .in("id", ids);
+
+        const orderMap = new Map(
+          links.map((l) => [l.question_id, l.question_order ?? 0])
+        );
+
+        const sorted = (data || []).sort(
+          (a, b) => (orderMap.get(a.id) ?? 0) - (orderMap.get(b.id) ?? 0)
+        );
+
+        setQuestions(sorted as Question[]);
+      } else {
+        setQuestions([]);
       }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleAddQuestion(e: React.FormEvent) {
+    e.preventDefault();
+    if (!form.question.trim()) {
+      alert("اكتب نص السؤال");
+      return;
     }
 
     try {
@@ -54,24 +119,26 @@ export default function ChallengeQuestionsPage() {
       let option_c = form.option_c.trim() || "-";
       let option_d = form.option_d.trim() || "-";
       let correct = form.correct_answer;
+      let explanation = form.explanation.trim() || null;
 
       if (form.question_type === "true_false") {
         option_a = "صح";
         option_b = "خطأ";
         option_c = "-";
         option_d = "-";
-        correct = form.correct_answer === "خطأ" || form.correct_answer === "B" ? "B" : "A";
+        correct =
+          form.correct_answer === "خطأ" || form.correct_answer === "B"
+            ? "B"
+            : "A";
       }
 
       if (form.question_type === "written") {
-        option_a = "-";
-        option_b = "-";
-        option_c = "-";
-        option_d = "-";
-        correct = "A"; // إجباري بسبب الـ CHECK constraint
+        option_a = option_b = option_c = option_d = "-";
+        correct = "A";
+        explanation = form.correct_answer.trim() || form.explanation.trim() || null;
       }
 
-      const { data: inserted, error: insertError } = await supabase
+      const { data: inserted, error } = await supabase
         .from("challenge_questions")
         .insert([
           {
@@ -81,11 +148,8 @@ export default function ChallengeQuestionsPage() {
             option_b,
             option_c,
             option_d,
-            correct_answer: correct, // دائمًا A/B/C/D
-            explanation:
-              form.question_type === "written"
-                ? form.correct_answer.trim() || form.explanation.trim() || null
-                : form.explanation.trim() || null,
+            correct_answer: correct,
+            explanation,
             marks: Number(form.marks),
             difficulty: form.difficulty,
           },
@@ -93,291 +157,271 @@ export default function ChallengeQuestionsPage() {
         .select("id")
         .single();
 
-      if (insertError || !inserted) {
-        console.error("Insert error full:", JSON.stringify(insertError, null, 2));
-        alert(
-          [
-            "فشل إضافة السؤال",
-            `code: ${insertError?.code}`,
-            `message: ${insertError?.message}`,
-            `details: ${insertError?.details}`,
-            `hint: ${insertError?.hint}`,
-          ].join("\n")
-        );
+      if (error || !inserted) {
+        alert("فشل الإضافة: " + (error?.message || ""));
         return;
       }
 
-      // ربط بالدور لو تصفيات
       if (roundId) {
         const { count } = await supabase
           .from("challenge_round_questions")
           .select("*", { count: "exact", head: true })
           .eq("round_id", roundId);
 
-        const { error: linkError } = await supabase
-          .from("challenge_round_questions")
-          .insert({
-            round_id: roundId,
-            question_id: inserted.id,
-            question_order: (count || 0) + 1,
-          });
-
-        if (linkError) {
-          console.error("Link error full:", JSON.stringify(linkError, null, 2));
-          alert(
-            [
-              "تم إضافة السؤال لكن فشل ربطه بالدور",
-              `code: ${linkError?.code}`,
-              `message: ${linkError?.message}`,
-              `details: ${linkError?.details}`,
-              `hint: ${linkError?.hint}`,
-            ].join("\n")
-          );
-          return;
-        }
+        await supabase.from("challenge_round_questions").insert({
+          round_id: roundId,
+          question_id: inserted.id,
+          question_order: (count || 0) + 1,
+        });
       }
 
-      alert("تم إضافة السؤال بنجاح");
-      router.push(`/admin/challenges/${challengeId}`);
-    } catch (err: any) {
-      console.error(err);
-      alert(err?.message || "حدث خطأ غير متوقع");
+      setShowForm(false);
+      setForm({
+        question_type: "mcq",
+        question: "",
+        option_a: "",
+        option_b: "",
+        option_c: "",
+        option_d: "",
+        correct_answer: "A",
+        explanation: "",
+        marks: 5,
+        difficulty: "متوسط",
+      });
+      loadQuestions();
     } finally {
       setSubmitting(false);
     }
   }
 
+  async function handleDelete(id: string) {
+    if (!confirm("حذف السؤال؟")) return;
+
+    if (roundId) {
+      await supabase
+        .from("challenge_round_questions")
+        .delete()
+        .eq("round_id", roundId)
+        .eq("question_id", id);
+    }
+
+    await supabase.from("challenge_questions").delete().eq("id", id);
+    loadQuestions();
+  }
+
   return (
     <main dir="rtl" className="min-h-screen bg-[#070b14] p-6 text-white sm:p-8">
-      <div className="mx-auto max-w-3xl space-y-6">
-        <div className="flex items-center justify-between">
+      <div className="mx-auto max-w-4xl space-y-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-3xl font-bold">إضافة سؤال</h1>
+            <h1 className="text-3xl font-bold">أسئلة التحدي</h1>
             <p className="mt-1 text-sm text-slate-400">
-              {roundId
-                ? "السؤال سيتم ربطه بدور التصفيات المختار"
-                : "إضافة سؤال للتحدي"}
+              {roundTitle ? `الدور: ${roundTitle}` : "إدارة الأسئلة"}
             </p>
           </div>
 
-          <button
-            onClick={() => router.push(`/admin/challenges/${challengeId}`)}
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-900 px-4 py-2.5 text-sm font-bold text-slate-300 hover:bg-slate-800"
-          >
-            <ArrowRight className="h-4 w-4" />
-            رجوع
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setShowForm((v) => !v)}
+              className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-blue-500"
+            >
+              <Plus className="h-4 w-4" />
+              {showForm ? "إغلاق النموذج" : "إضافة سؤال"}
+            </button>
+
+            <button
+              onClick={() => router.push(`/admin/challenges/${challengeId}`)}
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-900 px-4 py-2.5 text-sm font-bold text-slate-300 hover:bg-slate-800"
+            >
+              <ArrowRight className="h-4 w-4" />
+              رجوع
+            </button>
+          </div>
         </div>
 
-        <form
-          onSubmit={handleSubmit}
-          className="space-y-5 rounded-2xl border border-slate-800 bg-slate-900/50 p-6"
-        >
-          {/* نوع السؤال */}
-          <div>
-            <label className="mb-2 block text-sm font-bold text-slate-400">
-              نوع السؤال *
-            </label>
+        {showForm && (
+          <form
+            onSubmit={handleAddQuestion}
+            className="space-y-4 rounded-2xl border border-slate-800 bg-slate-900/50 p-5"
+          >
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               {[
-                { value: "mcq", label: "اختيار من متعدد", desc: "MCQ" },
-                { value: "true_false", label: "صح وخطأ", desc: "T&F" },
-                { value: "written", label: "مقالي", desc: "Written" },
-              ].map((type) => (
+                { value: "mcq", label: "MCQ" },
+                { value: "true_false", label: "صح وخطأ" },
+                { value: "written", label: "مقالي" },
+              ].map((t) => (
                 <button
-                  key={type.value}
+                  key={t.value}
                   type="button"
                   onClick={() =>
                     setForm({
                       ...form,
-                      question_type: type.value as QuestionType,
+                      question_type: t.value as QuestionType,
                       correct_answer:
-                        type.value === "true_false" ? "صح" : type.value === "mcq" ? "A" : "",
+                        t.value === "true_false"
+                          ? "صح"
+                          : t.value === "mcq"
+                            ? "A"
+                            : "",
                     })
                   }
-                  className={`rounded-xl border p-4 text-right transition ${
-                    form.question_type === type.value
-                      ? "border-blue-500 bg-blue-500/10"
-                      : "border-slate-700 bg-slate-800/50 hover:border-slate-600"
+                  className={`rounded-xl border p-3 text-sm font-bold ${
+                    form.question_type === t.value
+                      ? "border-blue-500 bg-blue-500/10 text-blue-300"
+                      : "border-slate-700 bg-slate-800 text-slate-300"
                   }`}
                 >
-                  <div className="font-bold">{type.label}</div>
-                  <div className="mt-1 text-xs text-slate-500">{type.desc}</div>
+                  {t.label}
                 </button>
               ))}
             </div>
-          </div>
 
-          {/* نص السؤال */}
-          <div>
-            <label className="mb-1 block text-sm font-bold text-slate-400">
-              نص السؤال *
-            </label>
             <textarea
               value={form.question}
               onChange={(e) => setForm({ ...form, question: e.target.value })}
               rows={3}
               required
-              className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-sm text-white outline-none focus:border-blue-500"
-              placeholder="اكتب السؤال هنا..."
+              placeholder="نص السؤال..."
+              className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-sm outline-none focus:border-blue-500"
             />
-          </div>
 
-          {/* MCQ Options */}
-          {form.question_type === "mcq" && (
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {(["a", "b", "c", "d"] as const).map((letter) => (
-                <div key={letter}>
-                  <label className="mb-1 block text-sm font-bold text-slate-400">
-                    الخيار {letter.toUpperCase()}
-                    {letter === "a" || letter === "b" ? " *" : ""}
-                  </label>
+            {form.question_type === "mcq" && (
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {(["a", "b", "c", "d"] as const).map((letter) => (
                   <input
-                    type="text"
+                    key={letter}
                     value={form[`option_${letter}`]}
                     onChange={(e) =>
                       setForm({ ...form, [`option_${letter}`]: e.target.value })
                     }
-                    required={letter === "a" || letter === "b"}
-                    className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-2.5 text-sm text-white outline-none focus:border-blue-500"
                     placeholder={`الخيار ${letter.toUpperCase()}`}
+                    className="rounded-xl border border-slate-700 bg-slate-800 px-4 py-2.5 text-sm outline-none focus:border-blue-500"
                   />
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+            )}
 
-          {/* True / False */}
-          {form.question_type === "true_false" && (
-            <div>
-              <label className="mb-2 block text-sm font-bold text-slate-400">
-                الإجابة الصحيحة *
-              </label>
+            {form.question_type === "true_false" && (
               <div className="flex gap-3">
                 {["صح", "خطأ"].map((opt) => (
                   <button
                     key={opt}
                     type="button"
                     onClick={() => setForm({ ...form, correct_answer: opt })}
-                    className={`flex-1 rounded-xl border py-3 text-sm font-bold transition ${
+                    className={`flex-1 rounded-xl border py-3 text-sm font-bold ${
                       form.correct_answer === opt
                         ? "border-blue-500 bg-blue-500/15 text-blue-300"
-                        : "border-slate-700 bg-slate-800 text-slate-300 hover:border-slate-600"
+                        : "border-slate-700 bg-slate-800"
                     }`}
                   >
                     {opt}
                   </button>
                 ))}
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Written */}
-          {form.question_type === "written" && (
-            <div>
-              <label className="mb-1 block text-sm font-bold text-slate-400">
-                نموذج الإجابة / مفتاح التصحيح (اختياري)
-              </label>
-              <textarea
-                value={form.correct_answer}
-                onChange={(e) =>
-                  setForm({ ...form, correct_answer: e.target.value })
-                }
-                rows={2}
-                className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-sm text-white outline-none focus:border-blue-500"
-                placeholder="نقاط يجب أن يذكرها الطالب في إجابته..."
-              />
-            </div>
-          )}
-
-          {/* MCQ correct answer */}
-          {form.question_type === "mcq" && (
-            <div>
-              <label className="mb-1 block text-sm font-bold text-slate-400">
-                الإجابة الصحيحة *
-              </label>
+            {form.question_type === "mcq" && (
               <select
                 value={form.correct_answer}
                 onChange={(e) =>
                   setForm({ ...form, correct_answer: e.target.value })
                 }
-                className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-2.5 text-sm text-white outline-none focus:border-blue-500"
+                className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-2.5 text-sm"
               >
                 <option value="A">A</option>
                 <option value="B">B</option>
                 <option value="C">C</option>
                 <option value="D">D</option>
               </select>
-            </div>
-          )}
+            )}
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <label className="mb-1 block text-sm font-bold text-slate-400">
-                الدرجات
-              </label>
-              <input
-                type="number"
-                min={1}
-                value={form.marks}
+            {form.question_type === "written" && (
+              <textarea
+                value={form.correct_answer}
                 onChange={(e) =>
-                  setForm({ ...form, marks: Number(e.target.value) })
+                  setForm({ ...form, correct_answer: e.target.value })
                 }
-                className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-2.5 text-sm text-white outline-none focus:border-blue-500"
+                rows={2}
+                placeholder="نموذج الإجابة (اختياري)"
+                className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-sm"
               />
-            </div>
+            )}
 
-            <div>
-              <label className="mb-1 block text-sm font-bold text-slate-400">
-                الصعوبة
-              </label>
-              <select
-                value={form.difficulty}
-                onChange={(e) =>
-                  setForm({ ...form, difficulty: e.target.value })
-                }
-                className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-2.5 text-sm text-white outline-none focus:border-blue-500"
-              >
-                <option value="سهل">سهل</option>
-                <option value="متوسط">متوسط</option>
-                <option value="صعب">صعب</option>
-              </select>
-            </div>
-          </div>
-
-          <div>
-            <label className="mb-1 block text-sm font-bold text-slate-400">
-              شرح الإجابة (اختياري)
-            </label>
-            <textarea
-              value={form.explanation}
+            <input
+              type="number"
+              min={1}
+              value={form.marks}
               onChange={(e) =>
-                setForm({ ...form, explanation: e.target.value })
+                setForm({ ...form, marks: Number(e.target.value) })
               }
-              rows={2}
-              className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-sm text-white outline-none focus:border-blue-500"
-              placeholder="شرح مختصر..."
+              className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-2.5 text-sm"
+              placeholder="الدرجات"
             />
-          </div>
 
-          <div className="flex justify-end gap-3 border-t border-slate-800 pt-4">
-            <button
-              type="button"
-              onClick={() => router.push(`/admin/challenges/${challengeId}`)}
-              className="rounded-xl border border-slate-700 bg-slate-900 px-5 py-2.5 text-sm font-bold text-slate-300 hover:bg-slate-800"
-            >
-              إلغاء
-            </button>
             <button
               type="submit"
               disabled={submitting}
-              className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-blue-500 disabled:opacity-50"
+              className="rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-emerald-500 disabled:opacity-50"
             >
-              <Plus className="h-4 w-4" />
-              {submitting ? "جاري الإضافة..." : "إضافة السؤال"}
+              {submitting ? "جاري الإضافة..." : "حفظ السؤال"}
             </button>
+          </form>
+        )}
+
+        {loading ? (
+          <p className="text-center text-slate-400">جاري التحميل...</p>
+        ) : questions.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-slate-700 p-12 text-center">
+            <HelpCircle className="mx-auto h-10 w-10 text-slate-600" />
+            <p className="mt-3 font-bold text-slate-300">لا توجد أسئلة</p>
           </div>
-        </form>
+        ) : (
+          <div className="space-y-3">
+            {questions.map((q, index) => (
+              <div
+                key={q.id}
+                className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/60"
+              >
+                <div className="flex items-center justify-between border-b border-slate-800 px-4 py-3">
+                  <div className="flex items-center gap-2 text-xs font-bold text-slate-400">
+                    <ClipboardList className="h-4 w-4" />
+                    <span>سؤال {index + 1}</span>
+                    <span>• {q.marks} درجة</span>
+                    <span>
+                      •{" "}
+                      {q.question_type === "written"
+                        ? "مقالي"
+                        : q.question_type === "true_false"
+                          ? "صح/خطأ"
+                          : "MCQ"}
+                    </span>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() =>
+                        router.push(
+                          `/admin/challenges/${challengeId}/questions/${q.id}/edit`
+                        )
+                      }
+                      className="rounded-lg bg-blue-500/15 p-2 text-blue-400"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(q.id)}
+                      className="rounded-lg bg-red-500/15 p-2 text-red-400"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+                <div className="p-4">
+                  <p className="font-bold">{q.question}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </main>
   );
