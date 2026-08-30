@@ -39,6 +39,11 @@ type Question = {
   correct_answer: string; // A | B | C | D
   marks: number;
   explanation: string | null;
+  image_url: string | null;
+  option_a_image: string | null;
+  option_b_image: string | null;
+  option_c_image: string | null;
+  option_d_image: string | null;
 };
 
 type AnswerMap = Record<string, string>; // questionId -> A/B/C/D or text
@@ -167,9 +172,12 @@ export default function ChallengePlayPage() {
 
       const { data: questionsData, error: qError } = await supabase
         .from("challenge_questions")
-        .select(
-          "id, question, question_type, option_a, option_b, option_c, option_d, correct_answer, marks, explanation"
-        )
+        .select(`
+          id, question, question_type,
+          option_a, option_b, option_c, option_d,
+          option_a_image, option_b_image, option_c_image, option_d_image,
+          correct_answer, marks, explanation, image_url
+        `)
         .in("id", ids);
 
       if (qError || !questionsData) {
@@ -231,16 +239,26 @@ export default function ChallengePlayPage() {
       const hasWritten = questions.some((q) => q.question_type === "written");
       let score = 0;
       let total = 0;
+      let correctCount = 0;
+      let wrongCount = 0;
+      let unansweredCount = 0;
 
       for (const q of questions) {
         total += q.marks;
         const userAns = (answers[q.id] || "").trim();
 
-        // المقالي لا يتم تصحيحه تلقائياً
+        if (!userAns) {
+          unansweredCount++;
+          continue;
+        }
+
         if (q.question_type === "written") continue;
 
-        if (userAns && userAns.toUpperCase() === q.correct_answer.toUpperCase()) {
+        if (userAns.toUpperCase() === (q.correct_answer || "").toUpperCase()) {
           score += q.marks;
+          correctCount++;
+        } else {
+          wrongCount++;
         }
       }
 
@@ -249,7 +267,6 @@ export default function ChallengePlayPage() {
       const passing = round?.passing_score ?? challenge?.passing_score ?? 50;
       const passed = !hasWritten && percentage >= Number(passing);
 
-      // حفظ المحاولة والمشارك
       if (studentId && challenge) {
         let participantId: string | null = null;
         const { data: existing } = await supabase
@@ -279,7 +296,6 @@ export default function ChallengePlayPage() {
         }
 
         if (participantId) {
-          // هل فيه محاولة سابقة لنفس الدور؟
           const { data: existingAttempts } = await supabase
             .from("challenge_attempts")
             .select("id, retry_number")
@@ -304,9 +320,9 @@ export default function ChallengePlayPage() {
               score: finalScore,
               total_score: finalTotal,
               percentage: finalPercentage,
-              correct_count: 0,
-              wrong_count: 0,
-              unanswered_count: 0,
+              correct_count: correctCount,
+              wrong_count: wrongCount,
+              unanswered_count: unansweredCount,
               duration_seconds: 1,
               started_at: new Date().toISOString(),
               finished_at: new Date().toISOString(),
@@ -323,14 +339,14 @@ export default function ChallengePlayPage() {
               const userAns = (answers[q.id] || "").trim();
               const isWritten = q.question_type === "written";
               const isCorrect = !isWritten
-                ? userAns.toUpperCase() === q.correct_answer.toUpperCase()
+                ? userAns.toUpperCase() === (q.correct_answer || "").toUpperCase()
                 : false;
               return {
                 attempt_id: insertedAttempt.id,
                 question_id: q.id,
                 student_answer: userAns || null,
                 is_correct: isWritten ? false : isCorrect,
-                marks_awarded: isWritten ? 0 : isCorrect ? q.marks : 0,
+                marks_awarded: isWritten ? 0 : isCorrect ? Number(q.marks) || 0 : 0,
                 question_order: index + 1,
                 answer_time_seconds: 0,
               };
@@ -342,6 +358,7 @@ export default function ChallengePlayPage() {
 
             if (ansError) {
               console.error("Answers error:", JSON.stringify(ansError, null, 2));
+              alert("تم التسليم لكن فشل حفظ تفاصيل الإجابات: " + ansError.message);
             }
           }
         }
@@ -515,7 +532,12 @@ export default function ChallengePlayPage() {
             { letter: "B", text: current.option_b },
             { letter: "C", text: current.option_c },
             { letter: "D", text: current.option_d },
-          ].filter((o) => o.text && o.text !== "-")
+          ].filter((o) => (o.text && o.text !== "-") || 
+            (o.letter === "A" && current.option_a_image) ||
+            (o.letter === "B" && current.option_b_image) ||
+            (o.letter === "C" && current.option_c_image) ||
+            (o.letter === "D" && current.option_d_image)
+          )
         : [];
 
   return (
@@ -567,34 +589,61 @@ export default function ChallengePlayPage() {
             {current.question}
           </h2>
 
+          {current.image_url && (
+            <img
+              src={current.image_url}
+              alt="صورة السؤال"
+              className="mt-4 max-h-64 w-full rounded-xl border border-slate-700 object-contain"
+            />
+          )}
+
           {/* MCQ / T&F */}
           {current.question_type !== "written" && (
             <div className="mt-6 space-y-3">
               {options.map((opt) => {
                 const selected = answers[current.id] === opt.letter;
+                const img =
+                  opt.letter === "A"
+                    ? current.option_a_image
+                    : opt.letter === "B"
+                      ? current.option_b_image
+                      : opt.letter === "C"
+                        ? current.option_c_image
+                        : current.option_d_image;
                 return (
                   <button
                     key={opt.letter}
                     type="button"
                     onClick={() => selectAnswer(current.id, opt.letter)}
-                    className={`flex w-full items-center gap-3 rounded-xl border px-4 py-3.5 text-right text-sm font-bold transition ${
+                    className={`flex w-full flex-col gap-2 rounded-xl border px-4 py-3.5 text-right transition ${
                       selected
                         ? "border-cyan-500 bg-cyan-500/15 text-cyan-300"
                         : "border-slate-700 bg-slate-800/50 text-slate-200 hover:border-slate-600"
                     }`}
                   >
-                    <span
-                      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs ${
-                        selected
-                          ? "bg-cyan-500 text-slate-950"
-                          : "bg-slate-700 text-slate-300"
-                      }`}
-                    >
-                      {opt.letter}
-                    </span>
-                    <span>{opt.text}</span>
-                    {selected && (
-                      <CheckCircle2 className="mr-auto h-4 w-4 text-cyan-400" />
+                    <div className="flex items-center gap-3">
+                      <span
+                        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold ${
+                          selected
+                            ? "bg-cyan-500 text-slate-950"
+                            : "bg-slate-700 text-slate-300"
+                        }`}
+                      >
+                        {opt.letter}
+                      </span>
+                      {opt.text && opt.text !== "-" && (
+                        <span className="font-bold">{opt.text}</span>
+                      )}
+                      {selected && (
+                        <CheckCircle2 className="mr-auto h-4 w-4 text-cyan-400" />
+                      )}
+                    </div>
+                    {img && (
+                      <img
+                        src={img}
+                        alt={`option-${opt.letter}`}
+                        className="max-h-40 rounded-lg object-contain"
+                      />
                     )}
                   </button>
                 );

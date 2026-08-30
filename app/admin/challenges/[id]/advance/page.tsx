@@ -89,66 +89,66 @@ export default function AdvanceStudentsPage() {
 
   async function loadAttemptsAndEntries() {
     try {
-        setLoading(true);
+      setLoading(true);
 
-        const currentIndex = rounds.findIndex((r) => r.id === selectedRoundId);
-        const nextRound = currentIndex >= 0 ? rounds[currentIndex + 1] : null;
+      const currentIndex = rounds.findIndex((r) => r.id === selectedRoundId);
+      const nextRound = currentIndex >= 0 ? rounds[currentIndex + 1] : null;
 
-        // 1) المحاولات
-        const { data: attemptsData, error: attemptsError } = await supabase
+      // 1) المحاولات
+      const { data: attemptsData, error: attemptsError } = await supabase
         .from("challenge_attempts")
         .select(
-            "id, participant_id, score, total_score, percentage, started_at, finished_at"
+          "id, participant_id, score, total_score, percentage, started_at, finished_at"
         )
         .eq("challenge_id", challengeId)
         .eq("round_id", selectedRoundId)
         .order("percentage", { ascending: false });
 
-        if (attemptsError) {
+      if (attemptsError) {
         console.error("Attempts error:", JSON.stringify(attemptsError, null, 2));
         setAttempts([]);
         return;
-        }
+      }
 
-        const rows = attemptsData || [];
-        const participantIds = [
+      const rows = attemptsData || [];
+      const participantIds = [
         ...new Set(rows.map((r) => r.participant_id).filter(Boolean)),
-        ];
+      ];
 
-        // 2) participant → student
-        let participantToStudent = new Map<string, string>();
-        if (participantIds.length > 0) {
+      // 2) participant → student
+      let participantToStudent = new Map<string, string>();
+      if (participantIds.length > 0) {
         const { data: parts } = await supabase
-            .from("challenge_participants")
-            .select("id, student_id")
-            .in("id", participantIds);
+          .from("challenge_participants")
+          .select("id, student_id")
+          .in("id", participantIds);
 
         participantToStudent = new Map(
-            (parts || []).map((p) => [p.id, p.student_id])
+          (parts || []).map((p) => [p.id, p.student_id])
         );
-        }
+      }
 
-        const studentIds = [
+      const studentIds = [
         ...new Set([...participantToStudent.values()].filter(Boolean)),
-        ];
+      ];
 
-        // 3) أسماء الطلاب
-        let nameMap = new Map<string, string>();
-        if (studentIds.length > 0) {
+      // 3) أسماء الطلاب
+      let nameMap = new Map<string, string>();
+      if (studentIds.length > 0) {
         const { data: studentsData } = await supabase
-            .from("students")
-            .select("id, full_name")
-            .in("id", studentIds);
+          .from("students")
+          .select("id, full_name")
+          .in("id", studentIds);
 
         nameMap = new Map(
-            (studentsData || []).map((s) => [s.id, s.full_name || "طالب"])
+          (studentsData || []).map((s) => [s.id, s.full_name || "طالب"])
         );
-        }
+      }
 
-        const mapped: AttemptRow[] = rows
+      const mapped: AttemptRow[] = rows
         .map((r) => {
-            const studentId = participantToStudent.get(r.participant_id) || "";
-            return {
+          const studentId = participantToStudent.get(r.participant_id) || "";
+          return {
             id: r.id,
             student_id: studentId,
             score: r.score,
@@ -156,42 +156,41 @@ export default function AdvanceStudentsPage() {
             percentage: r.percentage,
             status: r.finished_at ? "submitted" : "pending",
             students: {
-                full_name: nameMap.get(studentId) || "طالب",
+              full_name: nameMap.get(studentId) || "طالب",
             },
-            };
+          };
         })
         .filter((r) => r.student_id);
 
-        setAttempts(mapped);
+      setAttempts(mapped);
 
-        // 4) المتأهلين للدور التالي أو فائزين الدور النهائي
-        if (nextRound) {
+      // 4) المتأهلين للدور التالي أو فائزين الدور النهائي
+      if (nextRound) {
         const { data: entries } = await supabase
-            .from("challenge_round_entries")
-            .select("student_id")
-            .eq("challenge_id", challengeId)
-            .eq("round_id", nextRound.id)
-            .eq("status", "qualified");
+          .from("challenge_round_entries")
+          .select("student_id")
+          .eq("challenge_id", challengeId)
+          .eq("round_id", nextRound.id)
+          .eq("status", "qualified");
 
         const set = new Set((entries || []).map((e) => e.student_id));
         setAlreadyQualified(set);
         setSelectedStudents(new Set(set));
-        } else {
-        // إذا كان الدور النهائي، يمكن جلب الطلاب الحاصلين على final_rank = 1 مسبقاً (إن وجدوا)
+      } else {
         const { data: winners } = await supabase
-            .from("challenge_participants")
-            .select("student_id")
-            .eq("challenge_id", challengeId)
-            .eq("final_rank", 1);
+          .from("challenge_participants")
+          .select("student_id")
+          .eq("challenge_id", challengeId)
+          .eq("final_rank", 1);
 
         const set = new Set((winners || []).map((w) => w.student_id));
         setAlreadyQualified(set);
         setSelectedStudents(new Set(set));
-        }
+      }
     } catch (err) {
-        console.error(err);
+      console.error(err);
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
   }
 
@@ -281,7 +280,40 @@ export default function AdvanceStudentsPage() {
         return;
       }
 
-      alert("تم حفظ المتأهلين بنجاح");
+      // 1) إشعار عام
+      const generalNotifs = Array.from(selectedStudents).map((studentId) => ({
+        student_id: studentId,
+        title: "تم تأهلك 🎉",
+        message: `مبروك! تم تأهلك للدور التالي: ${nextRound.title}`,
+        type: "announcement",
+        link: `/challenges/${challengeId}`,
+        is_read: false,
+      }));
+      const { error: n1 } = await supabase
+        .from("notifications")
+        .insert(generalNotifs);
+      if (n1) {
+        console.error("notifications error:", JSON.stringify(n1, null, 2));
+        alert("notifications: " + (n1.message || JSON.stringify(n1)));
+      }
+
+      // 2) إشعار مرتبط بالتحدي
+      const challengeNotifs = Array.from(selectedStudents).map((studentId) => ({
+        student_id: studentId,
+        challenge_id: challengeId,
+        title: "تم تأهلك 🎉",
+        message: `مبروك! تم تأهلك للدور التالي: ${nextRound.title}`,
+        type: "announcement",
+      }));
+      const { error: n2 } = await supabase
+        .from("challenge_notifications")
+        .insert(challengeNotifs);
+      if (n2) {
+        console.error("challenge_notifications error:", JSON.stringify(n2, null, 2));
+        alert("challenge_notifications: " + (n2.message || JSON.stringify(n2)));
+      }
+
+      alert("تم حفظ المتأهلين وإرسال الإشعارات بنجاح");
       loadAttemptsAndEntries();
     } catch (err: any) {
       alert(err?.message || "حدث خطأ");
@@ -302,13 +334,11 @@ export default function AdvanceStudentsPage() {
     try {
       setSaving(true);
 
-      // 1) كل المشاركين في التحدي
       const { data: allParts } = await supabase
         .from("challenge_participants")
         .select("id, student_id")
         .eq("challenge_id", challengeId);
 
-      // 2) تصفير المراكز القديمة
       if (allParts?.length) {
         await supabase
           .from("challenge_participants")
@@ -316,7 +346,6 @@ export default function AdvanceStudentsPage() {
           .eq("challenge_id", challengeId);
       }
 
-      // 3) تعيين الفائزين rank = 1
       for (const studentId of selectedStudents) {
         await supabase
           .from("challenge_participants")
@@ -325,7 +354,6 @@ export default function AdvanceStudentsPage() {
           .eq("student_id", studentId);
       }
 
-      // 4) إنهاء التحدي
       await supabase
         .from("challenges")
         .update({ status: "finished" })

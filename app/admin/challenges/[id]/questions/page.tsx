@@ -25,6 +25,11 @@ type Question = {
   correct_answer: string;
   marks: number;
   explanation: string | null;
+  image_url: string | null;
+  option_a_image: string | null;
+  option_b_image: string | null;
+  option_c_image: string | null;
+  option_d_image: string | null;
 };
 
 export default function ChallengeQuestionsPage() {
@@ -53,6 +58,65 @@ export default function ChallengeQuestionsPage() {
     marks: 5,
     difficulty: "متوسط",
   });
+
+  const [questionImage, setQuestionImage] = useState<File | null>(null);
+  const [questionImagePreview, setQuestionImagePreview] = useState<string | null>(null);
+  const [optionImages, setOptionImages] = useState<{
+    a: File | null;
+    b: File | null;
+    c: File | null;
+    d: File | null;
+  }>({ a: null, b: null, c: null, d: null });
+  const [optionImagePreviews, setOptionImagePreviews] = useState<{
+    a: string | null;
+    b: string | null;
+    c: string | null;
+    d: string | null;
+  }>({ a: null, b: null, c: null, d: null });
+
+  async function uploadImage(file: File, path: string) {
+    console.log("بدء رفع الصورة:", file.name, "الحجم:", (file.size / 1024 / 1024).toFixed(2), "MB");
+    const startTime = Date.now();
+
+    const ext = file.name.split(".").pop();
+    const fileName = `${path}/${Date.now()}.${ext}`;
+    
+    const { error } = await supabase.storage
+      .from("challenge-images")
+      .upload(fileName, file);
+
+    if (error) {
+      console.error("خطأ في الرفع:", error);
+      throw error;
+    }
+
+    const { data } = supabase.storage
+      .from("challenge-images")
+      .getPublicUrl(fileName);
+
+    console.log(`تم الرفع بنجاح في ${Date.now() - startTime}ms. الرابط:`, data.publicUrl);
+    return data.publicUrl;
+  }
+
+  function onQuestionImageChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setQuestionImage(file);
+    setQuestionImagePreview(URL.createObjectURL(file));
+  }
+
+  function onOptionImageChange(
+    key: "a" | "b" | "c" | "d",
+    e: React.ChangeEvent<HTMLInputElement>
+  ) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setOptionImages((prev) => ({ ...prev, [key]: file }));
+    setOptionImagePreviews((prev) => ({
+      ...prev,
+      [key]: URL.createObjectURL(file),
+    }));
+  }
 
   useEffect(() => {
     loadQuestions();
@@ -106,6 +170,12 @@ export default function ChallengeQuestionsPage() {
 
   async function handleAddQuestion(e: React.FormEvent) {
     e.preventDefault();
+
+    if (!roundId) {
+      alert("لا يوجد دور محدد — افتح الصفحة من زر أسئلة التحدي بعد اختيار الدور");
+      return;
+    }
+
     if (!form.question.trim()) {
       alert("اكتب نص السؤال");
       return;
@@ -138,6 +208,28 @@ export default function ChallengeQuestionsPage() {
         explanation = form.correct_answer.trim() || form.explanation.trim() || null;
       }
 
+      let image_url: string | null = null;
+      let option_a_image: string | null = null;
+      let option_b_image: string | null = null;
+      let option_c_image: string | null = null;
+      let option_d_image: string | null = null;
+
+      if (questionImage) {
+        image_url = await uploadImage(questionImage, `questions/${challengeId}`);
+      }
+      if (optionImages.a) {
+        option_a_image = await uploadImage(optionImages.a, `options/${challengeId}`);
+      }
+      if (optionImages.b) {
+        option_b_image = await uploadImage(optionImages.b, `options/${challengeId}`);
+      }
+      if (optionImages.c) {
+        option_c_image = await uploadImage(optionImages.c, `options/${challengeId}`);
+      }
+      if (optionImages.d) {
+        option_d_image = await uploadImage(optionImages.d, `options/${challengeId}`);
+      }
+
       const { data: inserted, error } = await supabase
         .from("challenge_questions")
         .insert([
@@ -152,27 +244,44 @@ export default function ChallengeQuestionsPage() {
             explanation,
             marks: Number(form.marks),
             difficulty: form.difficulty,
+            image_url,
+            option_a_image,
+            option_b_image,
+            option_c_image,
+            option_d_image,
           },
         ])
         .select("id")
         .single();
 
       if (error || !inserted) {
-        alert("فشل الإضافة: " + (error?.message || ""));
+        alert("فشل إضافة السؤال: " + (error?.message || ""));
         return;
       }
 
-      if (roundId) {
-        const { count } = await supabase
-          .from("challenge_round_questions")
-          .select("*", { count: "exact", head: true })
-          .eq("round_id", roundId);
+      // حساب الترتيب الجديد باستخدام lastLink
+      const { data: lastLink } = await supabase
+        .from("challenge_round_questions")
+        .select("question_order")
+        .eq("round_id", roundId)
+        .order("question_order", { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-        await supabase.from("challenge_round_questions").insert({
+      const nextOrder = (lastLink?.question_order || 0) + 1;
+
+      const { error: linkError } = await supabase
+        .from("challenge_round_questions")
+        .insert({
           round_id: roundId,
           question_id: inserted.id,
-          question_order: (count || 0) + 1,
+          question_order: nextOrder,
         });
+
+      if (linkError) {
+        console.error(linkError);
+        alert("السؤال اتحفظ لكن فشل ربطه بالدور: " + linkError.message);
+        return;
       }
 
       setShowForm(false);
@@ -188,6 +297,10 @@ export default function ChallengeQuestionsPage() {
         marks: 5,
         difficulty: "متوسط",
       });
+      setQuestionImage(null);
+      setQuestionImagePreview(null);
+      setOptionImages({ a: null, b: null, c: null, d: null });
+      setOptionImagePreviews({ a: null, b: null, c: null, d: null });
       loadQuestions();
     } finally {
       setSubmitting(false);
@@ -285,6 +398,20 @@ export default function ChallengeQuestionsPage() {
               className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-sm outline-none focus:border-blue-500"
             />
 
+            <div>
+              <label className="mb-1 block text-sm font-bold text-slate-400">
+                صورة السؤال (اختياري)
+              </label>
+              <input type="file" accept="image/*" onChange={onQuestionImageChange} />
+              {questionImagePreview && (
+                <img
+                  src={questionImagePreview}
+                  alt="سؤال"
+                  className="mt-2 max-h-48 rounded-xl border border-slate-700 object-contain"
+                />
+              )}
+            </div>
+
             {form.question_type === "mcq" && (
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 {(["a", "b", "c", "d"] as const).map((letter) => (
@@ -298,6 +425,32 @@ export default function ChallengeQuestionsPage() {
                     className="rounded-xl border border-slate-700 bg-slate-800 px-4 py-2.5 text-sm outline-none focus:border-blue-500"
                   />
                 ))}
+              </div>
+            )}
+
+            {(form.question_type === "mcq" || form.question_type === "true_false") && (
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {(["a", "b", "c", "d"] as const)
+                  .filter((k) => form.question_type === "mcq" || k === "a" || k === "b")
+                  .map((key) => (
+                    <div key={key} className="rounded-xl border border-slate-700 p-3">
+                      <p className="mb-2 text-xs font-bold text-slate-400">
+                        صورة الخيار {key.toUpperCase()}
+                      </p>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => onOptionImageChange(key, e)}
+                      />
+                      {optionImagePreviews[key] && (
+                        <img
+                          src={optionImagePreviews[key]!}
+                          alt={`option-${key}`}
+                          className="mt-2 max-h-28 rounded-lg object-contain"
+                        />
+                      )}
+                    </div>
+                  ))}
               </div>
             )}
 
@@ -415,8 +568,15 @@ export default function ChallengeQuestionsPage() {
                     </button>
                   </div>
                 </div>
-                <div className="p-4">
+                <div className="p-4 space-y-3">
                   <p className="font-bold">{q.question}</p>
+                  {q.image_url && (
+                    <img
+                      src={q.image_url}
+                      alt="question"
+                      className="max-h-48 rounded-xl border border-slate-700 object-contain"
+                    />
+                  )}
                 </div>
               </div>
             ))}

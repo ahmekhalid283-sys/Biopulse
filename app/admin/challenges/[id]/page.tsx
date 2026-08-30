@@ -96,7 +96,7 @@ export default function ChallengeDetailsPage() {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [selectedRoundId, setSelectedRoundId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [publishing, setPublishing] = useState(false);
+  const [toggling, setToggling] = useState(false);
 
   const [participants, setParticipants] = useState<ParticipantRow[]>([]);
   const [loadingParticipants, setLoadingParticipants] = useState(false);
@@ -162,6 +162,32 @@ export default function ChallengeDetailsPage() {
       }
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleTogglePublish() {
+    if (!challenge) return;
+    try {
+      setToggling(true);
+      const newStatus = isVisibleToStudents ? "draft" : "active";
+
+      const { error } = await supabase
+        .from("challenges")
+        .update({ status: newStatus })
+        .eq("id", challengeId);
+
+      if (error) throw error;
+
+      setChallenge({ ...challenge, status: newStatus });
+      alert(
+        newStatus === "active"
+          ? "تم نشر التحدي بنجاح وأصبح مرئياً للطلاب"
+          : "تم سحب نشر التحدي بنجاح وتحويله إلى مسودة"
+      );
+    } catch (err: any) {
+      alert(err?.message || "حدث خطأ أثناء تغيير حالة النشر");
+    } finally {
+      setToggling(false);
     }
   }
 
@@ -282,44 +308,64 @@ export default function ChallengeDetailsPage() {
         return;
       }
 
+      const attemptIds = attempts.map((a) => a.id);
+
+      const { data: answerRows } = attemptIds.length
+        ? await supabase
+            .from("challenge_attempt_answers")
+            .select("id, attempt_id, question_id, marks_awarded, is_correct")
+            .in("attempt_id", attemptIds)
+        : { data: [] };
+
+      const questionIds = [
+        ...new Set((answerRows || []).map((r) => r.question_id)),
+      ];
+
+      const { data: questionsData } = questionIds.length
+        ? await supabase
+            .from("challenge_questions")
+            .select("id, question_type")
+            .in("id", questionIds)
+        : { data: [] };
+
+      const typeMap = new Map(
+        (questionsData || []).map((q: any) => [q.id, q.question_type])
+      );
+
+      const pendingSet = new Set<string>();
+      for (const row of answerRows || []) {
+        const type = typeMap.get(row.question_id);
+        if (type === "written") {
+          if (
+            Number(row.marks_awarded || 0) === 0 &&
+            row.is_correct === false
+          ) {
+            pendingSet.add(row.attempt_id);
+          }
+        }
+      }
+
       const participantIds = [
         ...new Set(attempts.map((a) => a.participant_id).filter(Boolean)),
       ];
       const roundIds = [
         ...new Set(attempts.map((a) => a.round_id).filter(Boolean)),
       ] as string[];
-      const attemptIds = attempts.map((a) => a.id);
 
-      const [{ data: parts }, { data: roundsData }, { data: answerRows }] =
-        await Promise.all([
-          participantIds.length
-            ? supabase
-                .from("challenge_participants")
-                .select("id, student_id")
-                .in("id", participantIds)
-            : Promise.resolve({ data: [] as any[] }),
-          roundIds.length
-            ? supabase
-                .from("challenge_rounds")
-                .select("id, title")
-                .in("id", roundIds)
-            : Promise.resolve({ data: [] as any[] }),
-          attemptIds.length
-            ? supabase
-                .from("challenge_attempt_answers")
-                .select("attempt_id, marks_awarded, is_correct, question_id")
-                .in("attempt_id", attemptIds)
-            : Promise.resolve({ data: [] as any[] }),
-        ]);
-
-      const qIds = [...new Set((answerRows || []).map((a) => a.question_id))];
-      const { data: qTypes } = qIds.length
-        ? await supabase
-            .from("challenge_questions")
-            .select("id, question_type")
-            .in("id", qIds)
-        : { data: [] as any[] };
-      const typeMap = new Map((qTypes || []).map((q) => [q.id, q.question_type]));
+      const [{ data: parts }, { data: roundsData }] = await Promise.all([
+        participantIds.length
+          ? supabase
+              .from("challenge_participants")
+              .select("id, student_id")
+              .in("id", participantIds)
+          : Promise.resolve({ data: [] as any[] }),
+        roundIds.length
+          ? supabase
+              .from("challenge_rounds")
+              .select("id, title")
+              .in("id", roundIds)
+          : Promise.resolve({ data: [] as any[] }),
+      ]);
 
       const partToStudent = new Map(
         (parts || []).map((p: any) => [p.id, p.student_id])
@@ -342,16 +388,6 @@ export default function ChallengeDetailsPage() {
         (roundsData || []).map((r: any) => [r.id, r.title])
       );
 
-      const pendingSet = new Set<string>();
-      for (const row of answerRows || []) {
-        if (
-          typeMap.get(row.question_id) === "written" &&
-          Number(row.marks_awarded || 0) === 0
-        ) {
-          pendingSet.add(row.attempt_id);
-        }
-      }
-
       const mapped: ParticipantRow[] = attempts.map((a) => {
         const studentId = partToStudent.get(a.participant_id) || "";
         return {
@@ -359,9 +395,7 @@ export default function ChallengeDetailsPage() {
           studentId,
           studentName: nameMap.get(studentId) || "طالب",
           roundId: a.round_id,
-          roundTitle: a.round_id
-            ? roundMap.get(a.round_id) || "دور"
-            : "بدون دور",
+          roundTitle: a.round_id ? roundMap.get(a.round_id) || "دور" : "—",
           score: a.score,
           totalScore: a.total_score,
           percentage: a.percentage,
@@ -377,54 +411,53 @@ export default function ChallengeDetailsPage() {
   }
 
   async function openReview(attemptId: string) {
+    if (!attemptId) {
+      alert("attemptId فاضي");
+      return;
+    }
+
     const meta = participants.find((p) => p.attemptId === attemptId) || null;
     setReviewMeta(meta);
     setReviewOpen(true);
     setReviewLoading(true);
+    setReviewAnswers([]);
 
-    try {
-      const { data: answers, error } = await supabase
-        .from("challenge_attempt_answers")
-        .select(
-          "id, question_id, student_answer, selected_option, is_correct, marks_awarded, question_order"
-        )
-        .eq("attempt_id", attemptId)
-        .order("question_order", { ascending: true });
+    const { data, error } = await supabase
+      .from("challenge_attempt_answers")
+      .select("*")
+      .eq("attempt_id", attemptId);
 
-      if (error || !answers) {
-        setReviewAnswers([]);
-        return;
-      }
-
-      const qIds = answers.map((a) => a.question_id);
-      const { data: qs } = await supabase
-        .from("challenge_questions")
-        .select(
-          "id, question, question_type, marks, correct_answer, option_a, option_b, option_c, option_d"
-        )
-        .in("id", qIds);
-
-      const qMap = new Map((qs || []).map((q) => [q.id, q]));
-
-      setReviewAnswers(
-        answers.map((a) => {
-          const q = qMap.get(a.question_id);
-          return {
-            ...a,
-            question: q?.question,
-            question_type: q?.question_type,
-            marks: Number(q?.marks || 0),
-            correct_answer: q?.correct_answer,
-            option_a: q?.option_a,
-            option_b: q?.option_b,
-            option_c: q?.option_c,
-            option_d: q?.option_d,
-          };
-        })
-      );
-    } finally {
+    if (error) {
+      alert(error.message);
       setReviewLoading(false);
+      return;
     }
+
+    if (!data?.length) {
+      setReviewLoading(false);
+      return;
+    }
+
+    const qIds = data.map((a) => a.question_id);
+    const { data: qs } = await supabase
+      .from("challenge_questions")
+      .select("id, question, question_type, marks, correct_answer")
+      .in("id", qIds);
+
+    const qMap = new Map((qs || []).map((q) => [q.id, q]));
+
+    setReviewAnswers(
+      data
+        .sort((a, b) => (a.question_order ?? 0) - (b.question_order ?? 0))
+        .map((a) => ({
+          ...a,
+          question: qMap.get(a.question_id)?.question || "سؤال",
+          question_type: qMap.get(a.question_id)?.question_type || "mcq",
+          marks: Number(qMap.get(a.question_id)?.marks || 0),
+          correct_answer: qMap.get(a.question_id)?.correct_answer || "",
+        }))
+    );
+    setReviewLoading(false);
   }
 
   function updateLocalGrade(
@@ -487,36 +520,11 @@ export default function ChallengeDetailsPage() {
 
       alert("تم حفظ التصحيح وتحديث نتيجة الطالب");
       setReviewOpen(false);
-      loadParticipants();
+      await loadParticipants();
     } catch (err: any) {
       alert(err?.message || "فشل حفظ التصحيح");
     } finally {
       setSavingGrade(false);
-    }
-  }
-
-  async function publishChallenge() {
-    try {
-      setPublishing(true);
-
-      const { error } = await supabase
-        .from("challenges")
-        .update({ status: "registration" })
-        .eq("id", challengeId);
-
-      if (error) {
-        alert("فشل النشر: " + error.message);
-        return;
-      }
-
-      alert("تم فتح التحدي للطلاب بنجاح");
-      setChallenge((prev) =>
-        prev ? { ...prev, status: "registration" } : prev
-      );
-    } catch (err: any) {
-      alert("حدث خطأ أثناء النشر: " + err.message);
-    } finally {
-      setPublishing(false);
     }
   }
 
@@ -590,25 +598,25 @@ export default function ChallengeDetailsPage() {
 
           <div className="flex flex-wrap items-center gap-3">
             <button
-              onClick={() =>
-                router.push(`/admin/challenges/${challengeId}/advance`)
-              }
+              onClick={() => router.push(`/admin/challenges/${challengeId}/advance`)}
               className="inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-900 px-4 py-2.5 text-sm font-bold text-slate-300 hover:bg-slate-800"
             >
-              <Users className="h-4 w-4" />
-              إدارة الأدوار
+              <UserCheck className="h-4 w-4" />
+              اختيار المتأهلين
             </button>
 
-            {!isVisibleToStudents && (
-              <button
-                onClick={publishChallenge}
-                disabled={publishing}
-                className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-emerald-500 disabled:opacity-50"
-              >
-                <Send className="h-4 w-4" />
-                {publishing ? "جاري النشر..." : "نشر التحدي"}
-              </button>
-            )}
+            <button
+              onClick={handleTogglePublish}
+              disabled={toggling}
+              className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold text-white transition disabled:opacity-50 ${
+                isVisibleToStudents
+                  ? "bg-amber-600 hover:bg-amber-500"
+                  : "bg-emerald-600 hover:bg-emerald-500"
+              }`}
+            >
+              <Send className="h-4 w-4" />
+              {isVisibleToStudents ? "سحب النشر" : "نشر التحدي"}
+            </button>
 
             <button
               onClick={() => router.push(`/admin/challenges/${challengeId}/edit`)}
@@ -663,11 +671,10 @@ export default function ChallengeDetailsPage() {
                 </p>
               </div>
               <button
-                onClick={() => router.push(`/admin/challenges/${challengeId}/rounds`)}
-                className="inline-flex items-center gap-2 rounded-xl bg-slate-800 px-4 py-2 text-sm font-bold text-slate-200 hover:bg-slate-700"
+                onClick={() => router.push(`/admin/challenges/${challengeId}/advance`)}
+                className="inline-flex items-center gap-2 rounded-xl border border-blue-500/30 bg-blue-500/10 px-4 py-2.5 text-sm font-bold text-blue-400 hover:bg-blue-500/20"
               >
-                <Layers className="h-4 w-4" />
-                إدارة الأدوار
+                اختيار المتأهلين
               </button>
             </div>
 
@@ -790,24 +797,23 @@ export default function ChallengeDetailsPage() {
                       </td>
                       <td className="py-3.5">
                         {p.pendingWritten ? (
-                          <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 px-2.5 py-1 text-xs font-bold text-amber-400">
-                            <Clock className="h-3 w-3" />
-                            بانتظار التصحيح المقالي
+                          <span className="inline-flex items-center gap-1 rounded-lg bg-amber-500/15 px-2.5 py-1 text-[11px] font-bold text-amber-400">
+                            في انتظار التصحيح
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-bold text-emerald-400">
-                            <CheckCircle2 className="h-3 w-3" />
+                          <span className="inline-flex items-center gap-1 rounded-lg bg-emerald-500/15 px-2.5 py-1 text-[11px] font-bold text-emerald-400">
                             مصحح
                           </span>
                         )}
                       </td>
                       <td className="py-3.5 pl-4 text-left">
                         <button
+                          type="button"
                           onClick={() => openReview(p.attemptId)}
                           className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600/20 px-3 py-1.5 text-xs font-bold text-blue-400 hover:bg-blue-600/30"
                         >
                           <Eye className="h-3.5 w-3.5" />
-                          مراجعة وتصحيح
+                          مراجعة الإجابات
                         </button>
                       </td>
                     </tr>
@@ -869,7 +875,7 @@ export default function ChallengeDetailsPage() {
                     <div className="rounded-xl border border-slate-700 bg-slate-950/50 p-3 text-sm">
                       <p className="text-xs text-slate-500">إجابة الطالب:</p>
                       <p className="mt-1 font-medium text-slate-200">
-                        {ans.student_answer || "بدون إجابة"}
+                        {ans.student_answer || ans.selected_option || "بدون إجابة"}
                       </p>
                     </div>
 

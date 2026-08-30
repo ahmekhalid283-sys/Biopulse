@@ -14,6 +14,8 @@ import {
   Sparkles,
   Target,
   Crown,
+  Home,
+  ArrowRight,
 } from "lucide-react";
 
 type Challenge = {
@@ -56,7 +58,6 @@ type Tab = "challenges" | "my_results" | "leaderboard";
 
 export default function StudentChallengesPage() {
   const router = useRouter();
-
   const [loading, setLoading] = useState(true);
   const [enabled, setEnabled] = useState(true);
   const [tab, setTab] = useState<Tab>("challenges");
@@ -97,7 +98,6 @@ export default function StudentChallengesPage() {
         setStudentName(student.full_name || "");
       }
 
-      // حالة فتح التحديات
       const { data: setting } = await supabase
         .from("platform_settings")
         .select("value")
@@ -119,7 +119,6 @@ export default function StudentChallengesPage() {
         return;
       }
 
-      // التحديات المتاحة
       const { data: challengesData, error: challengesError } = await supabase
         .from("challenges")
         .select(
@@ -135,7 +134,6 @@ export default function StudentChallengesPage() {
         setChallenges(challengesData || []);
       }
 
-      // نتائج الطالب + المتصدرين + الفائزين
       await Promise.all([
         student?.id ? loadMyResults(student.id) : Promise.resolve(),
         loadLeaderboard(),
@@ -171,17 +169,10 @@ export default function StudentChallengesPage() {
         )
         .in("participant_id", participantIds)
         .order("finished_at", { ascending: false }),
-      supabase
-        .from("challenges")
-        .select("id, title")
-        .in("id", challengeIds),
+      supabase.from("challenges").select("id, title").in("id", challengeIds),
     ]);
 
-    const titleMap = new Map(
-      (challengeList || []).map((c) => [c.id, c.title])
-    );
-
-    // أفضل محاولة لكل تحدي
+    const titleMap = new Map((challengeList || []).map((c) => [c.id, c.title]));
     const bestByChallenge = new Map<string, MyResult>();
 
     for (const a of attempts || []) {
@@ -244,12 +235,12 @@ export default function StudentChallengesPage() {
     const stats = new Map<string, LeaderRow>();
 
     for (const a of attempts) {
-      const studentId = partToStudent.get(a.participant_id);
-      if (!studentId) continue;
+      const sid = partToStudent.get(a.participant_id);
+      if (!sid) continue;
 
-      const prev = stats.get(studentId) || {
-        studentId,
-        name: nameMap.get(studentId) || "طالب",
+      const prev = stats.get(sid) || {
+        studentId: sid,
+        name: nameMap.get(sid) || "طالب",
         attempts: 0,
         bestPercentage: 0,
         totalScore: 0,
@@ -261,7 +252,7 @@ export default function StudentChallengesPage() {
         Number(a.percentage || 0)
       );
       prev.totalScore += Number(a.score || 0);
-      stats.set(studentId, prev);
+      stats.set(sid, prev);
     }
 
     const sorted = Array.from(stats.values()).sort((a, b) => {
@@ -338,7 +329,6 @@ export default function StudentChallengesPage() {
       played === 0
         ? 0
         : Math.max(...myResults.map((r) => Number(r.percentage || 0)));
-
     return { played, avg: Number(avg.toFixed(1)), best };
   }, [myResults]);
 
@@ -350,15 +340,14 @@ export default function StudentChallengesPage() {
   }
 
   function statusClass(status: string | null) {
-    if (status === "active") return "bg-emerald-500/15 text-emerald-400";
-    if (status === "registration") return "bg-cyan-500/15 text-cyan-400";
-    return "bg-violet-500/15 text-violet-400";
+    if (status === "active") return "bg-emerald-500/15 text-emerald-400 border-emerald-500/20";
+    if (status === "registration") return "bg-cyan-500/15 text-cyan-400 border-cyan-500/20";
+    return "bg-violet-500/15 text-violet-400 border-violet-500/20";
   }
 
   function difficultyClass(diff: string | null) {
     if (diff === "سهل") return "bg-emerald-500/15 text-emerald-400";
-    if (diff === "صعب" || diff === "تحدي كبير")
-      return "bg-red-500/15 text-red-400";
+    if (diff === "صعب" || diff === "تحدي كبير") return "bg-red-500/15 text-red-400";
     return "bg-amber-500/15 text-amber-400";
   }
 
@@ -387,6 +376,13 @@ export default function StudentChallengesPage() {
         </div>
         <h1 className="mt-6 text-2xl font-bold">التحديات مقفلة حاليًا</h1>
         <p className="mt-2 text-slate-400">سيتم فتحها قريبًا من إدارة المنصة</p>
+        <button
+          onClick={() => router.push("/dashboard")}
+          className="mt-6 inline-flex items-center gap-2 rounded-xl bg-cyan-500 px-5 py-2.5 text-sm font-bold text-slate-950"
+        >
+          <Home className="h-4 w-4" />
+          الصفحة الرئيسية
+        </button>
       </main>
     );
   }
@@ -396,15 +392,31 @@ export default function StudentChallengesPage() {
       dir="rtl"
       className="min-h-screen bg-[#050b14] p-4 text-white sm:p-6 lg:p-8"
     >
-      <div className="mx-auto max-w-7xl space-y-8">
-        {/* Hero */}
-        <section className="relative overflow-hidden rounded-3xl border border-cyan-500/20 bg-gradient-to-l from-cyan-500/10 via-slate-900/80 to-slate-950 p-6 sm:p-8">
-          <div className="absolute -left-10 -top-10 h-40 w-40 rounded-full bg-cyan-500/10 blur-3xl" />
-          <div className="absolute -bottom-10 right-10 h-32 w-32 rounded-full bg-blue-600/10 blur-3xl" />
+      <div className="mx-auto max-w-7xl space-y-6">
+        {/* Top bar */}
+        <div className="flex items-center justify-between gap-3">
+          <button
+            onClick={() => router.push("/dashboard")}
+            className="inline-flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-900/80 px-4 py-2.5 text-sm font-bold text-slate-300 transition hover:border-cyan-500/40 hover:text-cyan-400"
+          >
+            <ArrowRight className="h-4 w-4" />
+            الصفحة الرئيسية
+          </button>
 
+          <div className="hidden items-center gap-2 text-xs font-bold text-slate-500 sm:flex">
+            <Home className="h-3.5 w-3.5" />
+            <span>لوحة الطالب</span>
+            <ChevronLeft className="h-3.5 w-3.5" />
+            <span className="text-cyan-400">التحديات</span>
+          </div>
+        </div>
+
+        {/* Hero */}
+        <section className="relative overflow-hidden rounded-[28px] border border-white/5 bg-[#0a1220] p-6 sm:p-8">
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(34,211,238,0.12),transparent_40%),radial-gradient(circle_at_bottom_left,rgba(59,130,246,0.10),transparent_35%)]" />
           <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-start gap-4">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-cyan-500/20 text-cyan-400 shadow-lg shadow-cyan-500/10">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-400 to-blue-600 text-slate-950 shadow-lg shadow-cyan-500/20">
                 <Swords className="h-8 w-8" />
               </div>
               <div>
@@ -423,40 +435,24 @@ export default function StudentChallengesPage() {
             </div>
 
             <div className="grid grid-cols-3 gap-3">
-              <MiniStat
-                icon={Target}
-                label="شاركت"
-                value={statsCards.played}
-              />
-              <MiniStat
-                icon={Flame}
-                label="أفضل نتيجة"
-                value={`${statsCards.best}%`}
-              />
-              <MiniStat
-                icon={Crown}
-                label="ترتيبك"
-                value={myRank ? `#${myRank}` : "—"}
-              />
+              <MiniStat icon={Target} label="شاركت" value={statsCards.played} />
+              <MiniStat icon={Flame} label="أفضل نتيجة" value={`${statsCards.best}%`} />
+              <MiniStat icon={Crown} label="ترتيبك" value={myRank ? `#${myRank}` : "—"} />
             </div>
           </div>
         </section>
 
-        {/* Winners Section */}
+        {/* Winners */}
         {winners.length > 0 && (
           <section className="space-y-3">
             <h2 className="text-lg font-bold text-amber-300">🏆 أبطال التحديات</h2>
-
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               {winners.slice(0, 4).map((w) => (
                 <div
                   key={`${w.challengeId}-${w.studentId}`}
-                  className="relative overflow-hidden rounded-3xl border border-amber-400/30 bg-gradient-to-l from-amber-500/10 via-slate-900 to-slate-950 p-5"
+                  className="relative overflow-hidden rounded-3xl border border-amber-400/25 bg-gradient-to-l from-amber-500/10 via-[#0b1220] to-[#0b1220] p-5"
                 >
-                  {/* وهج */}
                   <div className="pointer-events-none absolute -left-8 -top-8 h-28 w-28 animate-pulse rounded-full bg-amber-400/20 blur-2xl" />
-                  <div className="pointer-events-none absolute -bottom-10 right-0 h-24 w-24 animate-pulse rounded-full bg-yellow-300/10 blur-2xl" />
-
                   <div className="relative flex items-center gap-4">
                     <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-300 to-yellow-500 text-2xl shadow-lg shadow-amber-500/30">
                       👑
@@ -474,7 +470,7 @@ export default function StudentChallengesPage() {
         )}
 
         {/* Tabs */}
-        <div className="flex flex-wrap gap-2 rounded-2xl border border-slate-800 bg-slate-900/50 p-2">
+        <div className="flex flex-wrap gap-2 rounded-2xl border border-slate-800 bg-[#0a1220] p-2">
           {[
             { key: "challenges", label: "التحديات", icon: Swords },
             { key: "my_results", label: "نتائجي", icon: Medal },
@@ -488,8 +484,8 @@ export default function StudentChallengesPage() {
                 onClick={() => setTab(t.key as Tab)}
                 className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition ${
                   active
-                    ? "bg-cyan-500 text-slate-950"
-                    : "text-slate-400 hover:bg-slate-800 hover:text-white"
+                    ? "bg-cyan-500 text-slate-950 shadow-lg shadow-cyan-500/20"
+                    : "text-slate-400 hover:bg-slate-800/80 hover:text-white"
                 }`}
               >
                 <Icon className="h-4 w-4" />
@@ -523,9 +519,9 @@ export default function StudentChallengesPage() {
                   return (
                     <article
                       key={challenge.id}
-                      className="group relative overflow-hidden rounded-3xl border border-slate-800 bg-slate-900/60 p-5 transition hover:-translate-y-1 hover:border-cyan-500/40 hover:shadow-xl hover:shadow-cyan-500/5"
+                      className="group relative flex flex-col overflow-hidden rounded-[24px] border border-slate-800 bg-[#0a1220] p-5 transition hover:-translate-y-1 hover:border-cyan-500/40 hover:shadow-xl hover:shadow-cyan-500/5"
                     >
-                      <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-l from-cyan-400 via-blue-500 to-transparent opacity-70" />
+                      <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-l from-cyan-400 via-blue-500 to-transparent opacity-80" />
 
                       <div className="mb-4 flex items-start justify-between gap-3">
                         <div className="flex items-center gap-3">
@@ -553,27 +549,25 @@ export default function StudentChallengesPage() {
                         )}
                       </div>
 
-                      <p className="mb-4 line-clamp-2 min-h-[40px] text-sm leading-6 text-slate-400">
+                      <p className="mb-4 line-clamp-2 min-h-[40px] flex-1 text-sm leading-6 text-slate-400">
                         {challenge.description ||
                           "ادخل التحدي الآن واختبر مستواك."}
                       </p>
 
                       <div className="mb-5 flex flex-wrap gap-2">
-                        <span className="inline-flex items-center gap-1 rounded-lg bg-slate-800 px-2.5 py-1 text-[11px] font-bold text-slate-300">
+                        <span className="inline-flex items-center gap-1 rounded-lg border border-slate-700 bg-slate-900 px-2.5 py-1 text-[11px] font-bold text-slate-300">
                           <Users className="h-3.5 w-3.5" />
-                          {challenge.challenge_type === "team"
-                            ? "جماعي"
-                            : "فردي"}
+                          {challenge.challenge_type === "team" ? "جماعي" : "فردي"}
                         </span>
                         <span
-                          className={`rounded-lg px-2.5 py-1 text-[11px] font-bold ${statusClass(
+                          className={`rounded-lg border px-2.5 py-1 text-[11px] font-bold ${statusClass(
                             challenge.status
                           )}`}
                         >
                           {statusLabel(challenge.status)}
                         </span>
                         {myBest && (
-                          <span className="rounded-lg bg-emerald-500/15 px-2.5 py-1 text-[11px] font-bold text-emerald-400">
+                          <span className="rounded-lg border border-emerald-500/20 bg-emerald-500/15 px-2.5 py-1 text-[11px] font-bold text-emerald-400">
                             نتيجتك: {Number(myBest.percentage || 0)}%
                           </span>
                         )}
@@ -609,7 +603,7 @@ export default function StudentChallengesPage() {
                 {myResults.map((result) => (
                   <div
                     key={result.id}
-                    className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5"
+                    className="rounded-2xl border border-slate-800 bg-[#0a1220] p-5"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div>
@@ -618,9 +612,7 @@ export default function StudentChallengesPage() {
                         </h3>
                         <p className="mt-1 text-xs text-slate-500">
                           {result.finished_at
-                            ? new Date(result.finished_at).toLocaleString(
-                                "ar-EG"
-                              )
+                            ? new Date(result.finished_at).toLocaleString("ar-EG")
                             : "—"}
                         </p>
                       </div>
@@ -663,7 +655,7 @@ export default function StudentChallengesPage() {
                 subtitle="لما الطلاب يبدأوا التحديات هتظهر الترتيبات هنا"
               />
             ) : (
-              <div className="overflow-hidden rounded-3xl border border-slate-800 bg-slate-900/50">
+              <div className="overflow-hidden rounded-3xl border border-slate-800 bg-[#0a1220]">
                 <div className="border-b border-slate-800 p-5">
                   <div className="flex items-center gap-3">
                     <Trophy className="h-5 w-5 text-amber-400" />
@@ -740,7 +732,7 @@ function MiniStat({
   value: string | number;
 }) {
   return (
-    <div className="min-w-[90px] rounded-2xl border border-white/5 bg-black/20 px-3 py-3 backdrop-blur">
+    <div className="min-w-[90px] rounded-2xl border border-white/5 bg-black/25 px-3 py-3 backdrop-blur">
       <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
         <Icon className="h-3.5 w-3.5" />
         {label}
@@ -752,7 +744,7 @@ function MiniStat({
 
 function EmptyState({ title, subtitle }: { title: string; subtitle: string }) {
   return (
-    <div className="rounded-3xl border border-dashed border-slate-700 bg-slate-900/40 p-16 text-center">
+    <div className="rounded-3xl border border-dashed border-slate-700 bg-[#0a1220] p-16 text-center">
       <Trophy className="mx-auto h-12 w-12 text-slate-600" />
       <h2 className="mt-4 text-xl font-bold">{title}</h2>
       <p className="mt-2 text-slate-500">{subtitle}</p>
