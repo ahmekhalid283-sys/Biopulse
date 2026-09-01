@@ -9,8 +9,6 @@ import {
   Plus,
   RefreshCw,
   CalendarDays,
-  Users,
-  User,
   Clock,
   ChevronLeft,
   Eye,
@@ -25,7 +23,7 @@ type Challenge = {
   id: string;
   title: string;
   description: string | null;
-  challenge_type: "individual" | "team";
+  challenge_type: string | null;
   difficulty: string | null;
   status: string | null;
   registration_start: string | null;
@@ -38,8 +36,6 @@ type Challenge = {
   allow_retake: boolean;
   public_results: boolean;
   show_leaderboard: boolean;
-  min_team_size: number | null;
-  max_team_size: number | null;
   created_at: string;
   total_rounds?: number | null;
 };
@@ -53,23 +49,16 @@ export default function AdminChallengesPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [challengesEnabled, setChallengesEnabled] = useState<boolean>(true);
   const [togglingStatus, setTogglingStatus] = useState<boolean>(false);
-  const [filter, setFilter] = useState<"all" | "individual" | "team">("all");
 
   async function loadChallenges() {
     try {
       setRefreshing(true);
 
-      let query = supabase
+      const { data, error } = await supabase
         .from("challenges")
         .select("*")
         .order("created_at", { ascending: false })
         .limit(50);
-
-      if (filter !== "all") {
-        query = query.eq("challenge_type", filter);
-      }
-
-      const { data, error } = await query;
 
       if (error) {
         console.error(error);
@@ -99,7 +88,7 @@ export default function AdminChallengesPage() {
   useEffect(() => {
     loadChallenges();
     loadPlatformStatus();
-  }, [filter]);
+  }, []);
 
   async function toggleChallenges() {
     try {
@@ -128,7 +117,6 @@ export default function AdminChallengesPage() {
     try {
       setDeletingId(id);
 
-      // حذف الأدوار المرتبطة أولاً
       await supabase.from("challenge_rounds").delete().eq("challenge_id", id);
 
       const { error } = await supabase.from("challenges").delete().eq("id", id);
@@ -164,7 +152,10 @@ export default function AdminChallengesPage() {
       return { label: "منتهي", className: "bg-slate-500/20 text-slate-400" };
     }
     if (start && now >= start && (!end || now <= end)) {
-      return { label: "جاري الآن", className: "bg-emerald-500/15 text-emerald-400" };
+      return {
+        label: "جاري الآن",
+        className: "bg-emerald-500/15 text-emerald-400",
+      };
     }
     if (challenge.status === "draft") {
       return { label: "مسودة", className: "bg-amber-500/15 text-amber-400" };
@@ -175,7 +166,6 @@ export default function AdminChallengesPage() {
   return (
     <main dir="rtl" className="min-h-screen bg-[#070b14] p-6 text-white sm:p-8">
       <div className="mx-auto max-w-[1500px] space-y-6">
-        {/* Header */}
         <section className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <div className="mb-2 flex items-center gap-2 text-sm text-slate-500">
@@ -195,7 +185,7 @@ export default function AdminChallengesPage() {
                   إدارة تحديات BioPulse
                 </h1>
                 <p className="mt-1 text-sm text-slate-400">
-                  إنشاء وإدارة البطولات والتصفيات والأسئلة
+                  تحديات فردية — إنشاء وإدارة البطولات والتصفيات
                 </p>
               </div>
             </div>
@@ -229,7 +219,9 @@ export default function AdminChallengesPage() {
               disabled={refreshing}
               className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-900 px-4 py-2.5 text-sm font-bold text-slate-300 hover:bg-slate-800 disabled:opacity-50"
             >
-              <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+              <RefreshCw
+                className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`}
+              />
               تحديث
             </button>
 
@@ -243,28 +235,6 @@ export default function AdminChallengesPage() {
           </div>
         </section>
 
-        {/* Filters */}
-        <section className="flex flex-wrap gap-2 rounded-2xl border border-slate-800 bg-slate-900/50 p-3">
-          {[
-            { key: "all", label: "الكل" },
-            { key: "individual", label: "فردي" },
-            { key: "team", label: "جماعي" },
-          ].map((f) => (
-            <button
-              key={f.key}
-              onClick={() => setFilter(f.key as any)}
-              className={`rounded-xl px-4 py-2 text-sm font-bold transition ${
-                filter === f.key
-                  ? "bg-blue-600 text-white"
-                  : "text-slate-400 hover:bg-slate-800 hover:text-white"
-              }`}
-            >
-              {f.label}
-            </button>
-          ))}
-        </section>
-
-        {/* Content */}
         {loading ? (
           <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-16 text-center">
             <RefreshCw className="mx-auto h-7 w-7 animate-spin text-blue-500" />
@@ -291,7 +261,6 @@ export default function AdminChallengesPage() {
           <section className="grid grid-cols-1 gap-5 xl:grid-cols-2">
             {challenges.map((challenge) => {
               const status = getStatus(challenge);
-              const isTeam = challenge.challenge_type === "team";
 
               return (
                 <article
@@ -322,21 +291,6 @@ export default function AdminChallengesPage() {
                     </div>
 
                     <div className="mt-4 flex flex-wrap gap-2">
-                      <span
-                        className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold ${
-                          isTeam
-                            ? "bg-violet-500/15 text-violet-400"
-                            : "bg-blue-500/15 text-blue-400"
-                        }`}
-                      >
-                        {isTeam ? (
-                          <Users className="h-3.5 w-3.5" />
-                        ) : (
-                          <User className="h-3.5 w-3.5" />
-                        )}
-                        {isTeam ? "جماعي" : "فردي"}
-                      </span>
-
                       {challenge.difficulty && (
                         <span className="rounded-lg bg-slate-800 px-2.5 py-1 text-xs font-bold text-slate-400">
                           {challenge.difficulty}

@@ -6,28 +6,20 @@ import { supabase } from "@/lib/supabase";
 import {
   Trophy,
   ChevronLeft,
-  ArrowRight,
   Clock,
-  Users,
   ClipboardList,
   RefreshCw,
-  HelpCircle,
-  Plus,
-  Trash2,
   Pencil,
-  Layers,
   Send,
   UserCheck,
   Eye,
   X,
-  CheckCircle2,
 } from "lucide-react";
 
 type Challenge = {
   id: string;
   title: string;
   description: string | null;
-  challenge_type: "individual" | "team";
   difficulty: string | null;
   status: string | null;
   duration_minutes: number | null;
@@ -80,10 +72,6 @@ type ReviewAnswer = {
   question_type?: string;
   marks?: number;
   correct_answer?: string;
-  option_a?: string;
-  option_b?: string;
-  option_c?: string;
-  option_d?: string;
 };
 
 export default function ChallengeDetailsPage() {
@@ -598,7 +586,9 @@ export default function ChallengeDetailsPage() {
 
           <div className="flex flex-wrap items-center gap-3">
             <button
-              onClick={() => router.push(`/admin/challenges/${challengeId}/advance`)}
+              onClick={() =>
+                router.push(`/admin/challenges/${challengeId}/advance`)
+              }
               className="inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-900 px-4 py-2.5 text-sm font-bold text-slate-300 hover:bg-slate-800"
             >
               <UserCheck className="h-4 w-4" />
@@ -619,7 +609,9 @@ export default function ChallengeDetailsPage() {
             </button>
 
             <button
-              onClick={() => router.push(`/admin/challenges/${challengeId}/edit`)}
+              onClick={() =>
+                router.push(`/admin/challenges/${challengeId}/edit`)
+              }
               className="inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800 px-4 py-2.5 text-sm font-bold text-slate-200 hover:bg-slate-700"
             >
               <Pencil className="h-4 w-4" />
@@ -628,14 +620,8 @@ export default function ChallengeDetailsPage() {
           </div>
         </div>
 
-        {/* Info Grid */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-5">
-            <p className="text-xs text-slate-400">نوع التحدي</p>
-            <p className="mt-1 text-lg font-bold">
-              {challenge.challenge_type === "team" ? "فرق" : "فردي"}
-            </p>
-          </div>
+        {/* Info Grid — بدون نوع التحدي */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-5">
             <p className="text-xs text-slate-400">المستوى</p>
             <p className="mt-1 text-lg font-bold">
@@ -660,7 +646,7 @@ export default function ChallengeDetailsPage() {
           </div>
         </div>
 
-        {/* Rounds Section */}
+        {/* Rounds */}
         {rounds.length > 0 && (
           <section className="rounded-2xl border border-slate-800 bg-slate-900/50 p-5">
             <div className="flex items-center justify-between">
@@ -671,7 +657,9 @@ export default function ChallengeDetailsPage() {
                 </p>
               </div>
               <button
-                onClick={() => router.push(`/admin/challenges/${challengeId}/advance`)}
+                onClick={() =>
+                  router.push(`/admin/challenges/${challengeId}/advance`)
+                }
                 className="inline-flex items-center gap-2 rounded-xl border border-blue-500/30 bg-blue-500/10 px-4 py-2.5 text-sm font-bold text-blue-400 hover:bg-blue-500/20"
               >
                 اختيار المتأهلين
@@ -708,7 +696,7 @@ export default function ChallengeDetailsPage() {
           </section>
         )}
 
-        {/* Questions Section Button */}
+        {/* Questions */}
         <section className="rounded-2xl border border-slate-800 bg-slate-900/50 p-5">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -733,7 +721,7 @@ export default function ChallengeDetailsPage() {
           </div>
         </section>
 
-        {/* Participants & Results Section */}
+        {/* Participants */}
         <section className="rounded-2xl border border-slate-800 bg-slate-900/50 p-5">
           <div className="flex items-center justify-between">
             <div>
@@ -780,12 +768,12 @@ export default function ChallengeDetailsPage() {
                 ) : (
                   participants.map((p) => (
                     <tr key={p.attemptId} className="hover:bg-slate-800/30">
-                      <td className="py-3.5 pr-4 font-bold">
-                        {p.studentName}
-                      </td>
+                      <td className="py-3.5 pr-4 font-bold">{p.studentName}</td>
                       <td className="py-3.5 text-slate-300">{p.roundTitle}</td>
                       <td className="py-3.5 text-slate-300">
-                        {p.score !== null ? `${p.score} / ${p.totalScore}` : "--"}
+                        {p.score !== null
+                          ? `${p.score} / ${p.totalScore}`
+                          : "--"}
                       </td>
                       <td className="py-3.5 font-bold text-cyan-400">
                         {p.percentage !== null ? `${p.percentage}%` : "--"}
@@ -825,7 +813,7 @@ export default function ChallengeDetailsPage() {
         </section>
       </div>
 
-      {/* Review & Grading Modal */}
+      {/* Review Modal */}
       {reviewOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
           <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-slate-800 bg-[#090d16] p-6 shadow-2xl">
@@ -860,7 +848,7 @@ export default function ChallengeDetailsPage() {
                 reviewAnswers.map((ans, idx) => (
                   <div
                     key={ans.id}
-                    className="rounded-xl border border-slate-800 bg-slate-900/60 p-4 space-y-3"
+                    className="space-y-3 rounded-xl border border-slate-800 bg-slate-900/60 p-4"
                   >
                     <div className="flex items-center justify-between text-xs text-slate-400">
                       <span>السؤال {idx + 1}</span>
@@ -871,30 +859,31 @@ export default function ChallengeDetailsPage() {
 
                     <p className="font-bold text-white">{ans.question}</p>
 
-                    {/* Student Answer details */}
                     <div className="rounded-xl border border-slate-700 bg-slate-950/50 p-3 text-sm">
                       <p className="text-xs text-slate-500">إجابة الطالب:</p>
                       <p className="mt-1 font-medium text-slate-200">
-                        {ans.student_answer || ans.selected_option || "بدون إجابة"}
+                        {ans.student_answer ||
+                          ans.selected_option ||
+                          "بدون إجابة"}
                       </p>
                     </div>
 
-                    {/* Correct Answer details for automated questions */}
                     {ans.question_type !== "written" && (
-                      <div className="text-xs text-slate-400 flex items-center gap-2">
+                      <div className="flex items-center gap-2 text-xs text-slate-400">
                         <span>الإجابة الصحيحة:</span>
                         <span className="font-bold text-emerald-400">
                           {ans.correct_answer}
                         </span>
                         <span className="mr-auto font-bold">
-                          {ans.is_correct ? "صحيح (درجة كاملة)" : "خطأ (صفر)"}
+                          {ans.is_correct
+                            ? "صحيح (درجة كاملة)"
+                            : "خطأ (صفر)"}
                         </span>
                       </div>
                     )}
 
-                    {/* Grading section for written questions */}
                     {ans.question_type === "written" && (
-                      <div className="mt-3 border-t border-slate-800 pt-3 flex flex-wrap items-center justify-between gap-3">
+                      <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-slate-800 pt-3">
                         <span className="text-xs font-bold text-amber-400">
                           سؤال مقالي يحتاج تصحيح يدوي
                         </span>

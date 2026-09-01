@@ -16,7 +16,6 @@ export default function EditChallengePage() {
   const [form, setForm] = useState({
     title: "",
     description: "",
-    challenge_type: "individual" as "individual" | "team",
     difficulty: "متوسط",
     registration_start: "",
     registration_end: "",
@@ -27,8 +26,6 @@ export default function EditChallengePage() {
     allow_retake: false,
     public_results: true,
     show_leaderboard: true,
-    min_team_size: 1,
-    max_team_size: 4,
   });
 
   function toLocalInput(value: string | null) {
@@ -58,7 +55,6 @@ export default function EditChallengePage() {
           setForm({
             title: data.title || "",
             description: data.description || "",
-            challenge_type: data.challenge_type || "individual",
             difficulty: data.difficulty || "متوسط",
             registration_start: toLocalInput(data.registration_start),
             registration_end: toLocalInput(data.registration_end),
@@ -69,8 +65,6 @@ export default function EditChallengePage() {
             allow_retake: data.allow_retake ?? false,
             public_results: data.public_results ?? true,
             show_leaderboard: data.show_leaderboard ?? true,
-            min_team_size: data.min_team_size ?? 1,
-            max_team_size: data.max_team_size ?? 4,
           });
         }
       } catch (err: any) {
@@ -100,7 +94,8 @@ export default function EditChallengePage() {
         .update({
           title: form.title.trim(),
           description: form.description.trim() || null,
-          challenge_type: form.challenge_type,
+          challenge_type: "individual",
+          type: "individual",
           difficulty: form.difficulty,
           registration_start: form.registration_start || null,
           registration_end: form.registration_end || null,
@@ -111,10 +106,8 @@ export default function EditChallengePage() {
           allow_retake: form.allow_retake,
           public_results: form.public_results,
           show_leaderboard: form.show_leaderboard,
-          min_team_size:
-            form.challenge_type === "team" ? Number(form.min_team_size) : null,
-          max_team_size:
-            form.challenge_type === "team" ? Number(form.max_team_size) : null,
+          min_team_size: null,
+          max_team_size: null,
         })
         .eq("id", challengeId);
 
@@ -147,7 +140,6 @@ export default function EditChallengePage() {
   return (
     <main dir="rtl" className="min-h-screen bg-[#070b14] p-6 text-white sm:p-8">
       <div className="mx-auto max-w-4xl space-y-6">
-        {/* Header */}
         <div className="flex items-center justify-between">
           <div>
             <div className="mb-2 flex items-center gap-2 text-sm text-slate-500">
@@ -163,6 +155,7 @@ export default function EditChallengePage() {
               <span>تعديل</span>
             </div>
             <h1 className="text-3xl font-bold">تعديل التحدي</h1>
+            <p className="mt-1 text-sm text-slate-400">التحديات فردية فقط</p>
           </div>
 
           <button
@@ -175,7 +168,6 @@ export default function EditChallengePage() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Basic */}
           <section className="space-y-4 rounded-2xl border border-slate-800 bg-slate-900/50 p-6">
             <h2 className="text-lg font-bold">المعلومات الأساسية</h2>
 
@@ -206,47 +198,25 @@ export default function EditChallengePage() {
               />
             </div>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div>
-                <label className="mb-1 block text-sm font-bold text-slate-400">
-                  نوع التحدي
-                </label>
-                <select
-                  value={form.challenge_type}
-                  onChange={(e) =>
-                    setForm({
-                      ...form,
-                      challenge_type: e.target.value as "individual" | "team",
-                    })
-                  }
-                  className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-sm text-white outline-none focus:border-blue-500"
-                >
-                  <option value="individual">فردي</option>
-                  <option value="team">جماعي</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="mb-1 block text-sm font-bold text-slate-400">
-                  مستوى الصعوبة
-                </label>
-                <select
-                  value={form.difficulty}
-                  onChange={(e) =>
-                    setForm({ ...form, difficulty: e.target.value })
-                  }
-                  className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-sm text-white outline-none focus:border-blue-500"
-                >
-                  <option value="سهل">سهل</option>
-                  <option value="متوسط">متوسط</option>
-                  <option value="صعب">صعب</option>
-                  <option value="تحدي كبير">تحدي كبير</option>
-                </select>
-              </div>
+            <div>
+              <label className="mb-1 block text-sm font-bold text-slate-400">
+                مستوى الصعوبة
+              </label>
+              <select
+                value={form.difficulty}
+                onChange={(e) =>
+                  setForm({ ...form, difficulty: e.target.value })
+                }
+                className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-sm text-white outline-none focus:border-blue-500"
+              >
+                <option value="سهل">سهل</option>
+                <option value="متوسط">متوسط</option>
+                <option value="صعب">صعب</option>
+                <option value="تحدي كبير">تحدي كبير</option>
+              </select>
             </div>
           </section>
 
-          {/* Timings */}
           <section className="space-y-4 rounded-2xl border border-slate-800 bg-slate-900/50 p-6">
             <h2 className="text-lg font-bold">المواعيد</h2>
 
@@ -306,7 +276,6 @@ export default function EditChallengePage() {
             </div>
           </section>
 
-          {/* Settings */}
           <section className="space-y-4 rounded-2xl border border-slate-800 bg-slate-900/50 p-6">
             <h2 className="text-lg font-bold">إعدادات الاختبار</h2>
 
@@ -347,45 +316,6 @@ export default function EditChallengePage() {
                 />
               </div>
             </div>
-
-            {form.challenge_type === "team" && (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="mb-1 block text-sm font-bold text-slate-400">
-                    الحد الأدنى للفريق
-                  </label>
-                  <input
-                    type="number"
-                    min={1}
-                    value={form.min_team_size}
-                    onChange={(e) =>
-                      setForm({
-                        ...form,
-                        min_team_size: Number(e.target.value),
-                      })
-                    }
-                    className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-sm text-white outline-none focus:border-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block text-sm font-bold text-slate-400">
-                    الحد الأقصى للفريق
-                  </label>
-                  <input
-                    type="number"
-                    min={1}
-                    value={form.max_team_size}
-                    onChange={(e) =>
-                      setForm({
-                        ...form,
-                        max_team_size: Number(e.target.value),
-                      })
-                    }
-                    className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-sm text-white outline-none focus:border-blue-500"
-                  />
-                </div>
-              </div>
-            )}
 
             <div className="space-y-3 pt-2">
               {[
