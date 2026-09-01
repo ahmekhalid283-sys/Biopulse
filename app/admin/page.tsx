@@ -74,36 +74,44 @@ export default function AdminDashboard() {
   }
 
   return (
-    <main dir="rtl" className="min-h-screen bg-[#070b14] text-white">
-      <div className="w-full space-y-8">
+    <main
+      dir="rtl"
+      className="relative min-h-screen bg-[#070b14] text-white selection:bg-blue-500/30 overflow-hidden"
+    >
+      {/* Decorative Background Glows */}
+      <div className="absolute top-0 right-1/4 h-96 w-96 rounded-full bg-blue-600/5 blur-[120px] pointer-events-none" />
+      <div className="absolute top-40 left-1/4 h-96 w-96 rounded-full bg-indigo-600/5 blur-[120px] pointer-events-none" />
+
+      <div className="relative z-10 w-full p-6 sm:p-8 space-y-8 max-w-7xl mx-auto">
         {/* Header */}
         <section className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <div className="mb-3 flex items-center gap-2 text-sm font-medium text-slate-500">
-              <span className="text-blue-400">BioPulse</span>
+            <div className="mb-3 flex items-center gap-2 text-sm font-medium text-slate-400">
+              <span className="text-blue-400 font-bold tracking-wide">BioPulse</span>
               <ChevronLeft className="h-4 w-4" />
               <span>لوحة الإدارة</span>
             </div>
 
-            <h1 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
+            <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl bg-gradient-to-l from-white to-slate-400 bg-clip-text text-transparent">
               لوحة التحكم
             </h1>
 
-            <p className="mt-2 max-w-xl text-sm text-slate-400 sm:text-base">
-              نظرة شاملة على نشاط المنصة، تقدم الطلاب، والاختبارات في الوقت
-              الفعلي.
+            <p className="mt-2 max-w-xl text-sm text-slate-400 sm:text-base leading-relaxed">
+              نظرة شاملة على نشاط المنصة، تقدم الطلاب، والاختبارات في الوقت الفعلي.
             </p>
           </div>
 
           <button
             onClick={loadDashboard}
             disabled={loading}
-            className="group inline-flex w-fit items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-900/80 px-4 py-2.5 text-sm font-semibold text-slate-200 backdrop-blur transition hover:border-slate-600 hover:bg-slate-800 disabled:opacity-50"
+            className="group inline-flex w-fit items-center justify-center gap-2 rounded-xl border border-slate-700/50 bg-slate-900/50 backdrop-blur-md px-5 py-2.5 text-sm font-semibold text-slate-200 transition-all hover:border-slate-600 hover:bg-slate-800 hover:shadow-lg hover:shadow-black/20 disabled:opacity-50"
           >
             <RefreshCw
-              className={`h-4 w-4 ${loading ? "animate-spin" : "group-hover:rotate-180 transition-transform duration-500"}`}
+              className={`h-4 w-4 text-blue-400 ${
+                loading ? "animate-spin" : "group-hover:rotate-180 transition-transform duration-500"
+              }`}
             />
-            تحديث البيانات
+            {loading ? "جاري التحديث..." : "تحديث البيانات"}
           </button>
         </section>
 
@@ -141,7 +149,7 @@ export default function AdminDashboard() {
             title="المحاولات"
             value={stats.attempts}
             icon={Trophy}
-            accent="blue"
+            accent="emerald"
             description="إجمالي المحاولات"
           />
         </section>
@@ -150,9 +158,6 @@ export default function AdminDashboard() {
         <section>
           <div className="mb-4">
             <h2 className="text-lg font-bold text-white">الإجراءات السريعة</h2>
-            <p className="mt-1 text-sm text-slate-500">
-              أهم الأدوات التي تحتاجها لإدارة المنصة بكفاءة.
-            </p>
           </div>
 
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -176,53 +181,42 @@ export default function AdminDashboard() {
         </section>
 
         {/* Main Content */}
-        <section className="grid grid-cols-1 gap-5 xl:grid-cols-[1fr_340px]">
+        <section className="grid grid-cols-1 gap-6 xl:grid-cols-[1fr_340px]">
           {/* Latest Results */}
-          <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/60 shadow-xl shadow-black/20">
-            <div className="flex flex-col gap-3 border-b border-slate-800 p-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col overflow-hidden rounded-2xl border border-slate-800/60 bg-slate-900/40 backdrop-blur-sm shadow-2xl shadow-black/20">
+            <div className="flex flex-col gap-3 border-b border-slate-800/60 p-5 sm:flex-row sm:items-center sm:justify-between bg-slate-900/20">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10 text-blue-400">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10 text-blue-400 ring-1 ring-blue-500/20 shadow-[0_0_15px_rgba(59,130,246,0.15)]">
                   <Activity className="h-5 w-5" />
                 </div>
                 <div>
                   <h2 className="font-bold text-white">آخر نتائج الطلاب</h2>
-                  <p className="mt-0.5 text-xs text-slate-500">
+                  <p className="mt-0.5 text-xs text-slate-400">
                     أحدث محاولات الاختبارات
                   </p>
                 </div>
               </div>
 
-              <div className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-semibold text-slate-400">
+              <div className="rounded-lg border border-slate-700/50 bg-slate-800/50 px-3 py-1.5 text-xs font-semibold text-slate-300 backdrop-blur-md">
                 آخر 5 محاولات
               </div>
             </div>
 
             {/* Desktop Table */}
-            <div className="hidden overflow-x-auto md:block">
-              <table className="w-full">
+            <div className="hidden overflow-x-auto md:block flex-1">
+              <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-slate-800 bg-slate-900/80">
-                    <th className="px-5 py-4 text-right text-xs font-bold text-slate-500">
-                      الطالب
-                    </th>
-                    <th className="px-5 py-4 text-right text-xs font-bold text-slate-500">
-                      الامتحان
-                    </th>
-                    <th className="px-5 py-4 text-right text-xs font-bold text-slate-500">
-                      الدرجة
-                    </th>
-                    <th className="px-5 py-4 text-right text-xs font-bold text-slate-500">
-                      النسبة
-                    </th>
+                  <tr className="border-b border-slate-800/60 bg-slate-900/40 text-slate-400">
+                    <th className="px-5 py-4 text-right font-medium">الطالب</th>
+                    <th className="px-5 py-4 text-right font-medium">الامتحان</th>
+                    <th className="px-5 py-4 text-right font-medium">الدرجة</th>
+                    <th className="px-5 py-4 text-right font-medium">النسبة</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-slate-800/60">
                   {latestAttempts.length === 0 ? (
                     <tr>
-                      <td
-                        colSpan={4}
-                        className="px-5 py-16 text-center text-sm text-slate-500"
-                      >
+                      <td colSpan={4} className="px-5 py-16 text-center text-slate-500">
                         لا توجد نتائج حتى الآن.
                       </td>
                     </tr>
@@ -232,37 +226,39 @@ export default function AdminDashboard() {
                       return (
                         <tr
                           key={a.id}
-                          className="border-b border-slate-800/80 last:border-0 transition hover:bg-slate-800/40"
+                          className="group transition-colors hover:bg-slate-800/30"
                         >
                           <td className="px-5 py-4">
                             <div className="flex items-center gap-3">
-                              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-500/10 text-xs font-bold text-blue-400">
+                              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-blue-500/20 to-indigo-500/20 text-xs font-bold text-blue-300 ring-1 ring-blue-500/30">
                                 {(a.students?.full_name || "?").charAt(0)}
                               </div>
-                              <span className="font-semibold text-slate-100">
+                              <span className="font-medium text-slate-200 group-hover:text-white transition-colors">
                                 {a.students?.full_name || "طالب"}
                               </span>
                             </div>
                           </td>
-                          <td className="px-5 py-4 text-sm text-slate-400">
+                          <td className="px-5 py-4 text-slate-400">
                             {a.exams?.title || "—"}
                           </td>
                           <td className="px-5 py-4">
-                            <span className="rounded-lg bg-slate-800 px-2.5 py-1.5 text-sm font-bold text-slate-200">
+                            <span className="rounded-md bg-slate-800/80 border border-slate-700/50 px-2.5 py-1 text-xs font-bold text-slate-200">
                               {a.score}/{a.total}
                             </span>
                           </td>
                           <td className="px-5 py-4">
                             <div className="flex items-center gap-3">
-                              <div className="h-1.5 w-20 overflow-hidden rounded-full bg-slate-800">
+                              <div className="h-1.5 w-24 overflow-hidden rounded-full bg-slate-800 shadow-inner">
                                 <div
-                                  className="h-full rounded-full bg-gradient-to-l from-blue-400 to-blue-600"
+                                  className="h-full rounded-full bg-gradient-to-l from-blue-400 to-indigo-500 relative"
                                   style={{
                                     width: `${Math.min(100, Math.max(0, percentage))}%`,
                                   }}
-                                />
+                                >
+                                  <div className="absolute inset-0 bg-white/20" />
+                                </div>
                               </div>
-                              <span className="text-sm font-bold text-blue-400">
+                              <span className="text-xs font-bold text-blue-400 w-9">
                                 {percentage.toFixed(1)}%
                               </span>
                             </div>
@@ -275,8 +271,8 @@ export default function AdminDashboard() {
               </table>
             </div>
 
-            {/* Mobile */}
-            <div className="divide-y divide-slate-800 md:hidden">
+            {/* Mobile View */}
+            <div className="divide-y divide-slate-800/60 md:hidden flex-1">
               {latestAttempts.length === 0 ? (
                 <div className="p-12 text-center text-sm text-slate-500">
                   لا توجد نتائج حتى الآن.
@@ -285,29 +281,29 @@ export default function AdminDashboard() {
                 latestAttempts.map((a) => {
                   const percentage = Number(a.percentage) || 0;
                   return (
-                    <div key={a.id} className="space-y-3 p-4">
+                    <div key={a.id} className="space-y-3 p-4 hover:bg-slate-800/20 transition-colors">
                       <div className="flex items-center justify-between gap-3">
                         <div className="flex min-w-0 items-center gap-3">
-                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-500/10 text-xs font-bold text-blue-400">
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500/20 to-indigo-500/20 text-xs font-bold text-blue-300 ring-1 ring-blue-500/30">
                             {(a.students?.full_name || "?").charAt(0)}
                           </div>
                           <div className="min-w-0">
-                            <p className="truncate font-bold text-slate-100">
+                            <p className="truncate text-sm font-bold text-slate-200">
                               {a.students?.full_name || "طالب"}
                             </p>
-                            <p className="mt-0.5 truncate text-xs text-slate-500">
+                            <p className="mt-0.5 truncate text-xs text-slate-400">
                               {a.exams?.title || "—"}
                             </p>
                           </div>
                         </div>
-                        <span className="shrink-0 rounded-lg bg-slate-800 px-2.5 py-1.5 text-xs font-bold text-slate-200">
+                        <span className="shrink-0 rounded-md bg-slate-800/80 border border-slate-700/50 px-2 py-1 text-xs font-bold text-slate-200">
                           {a.score}/{a.total}
                         </span>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-800">
+                      <div className="flex items-center gap-3 pl-12">
+                        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-800 shadow-inner">
                           <div
-                            className="h-full rounded-full bg-gradient-to-l from-blue-400 to-blue-600"
+                            className="h-full rounded-full bg-gradient-to-l from-blue-400 to-indigo-500"
                             style={{
                               width: `${Math.min(100, Math.max(0, percentage))}%`,
                             }}
@@ -325,59 +321,56 @@ export default function AdminDashboard() {
           </div>
 
           {/* Sidebar */}
-          <aside className="space-y-5">
+          <aside className="space-y-6">
             {/* Platform Summary */}
-            <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 shadow-xl shadow-black/20">
-              <div className="mb-5 flex items-center justify-between">
+            <div className="rounded-2xl border border-slate-800/60 bg-slate-900/40 backdrop-blur-sm p-6 shadow-xl shadow-black/20">
+              <div className="mb-6 flex items-center justify-between">
                 <div>
-                  <h2 className="font-bold text-white">ملخص المنصة</h2>
-                  <p className="mt-1 text-xs text-slate-500">إحصائيات سريعة</p>
+                  <h2 className="font-bold text-white text-lg">ملخص المنصة</h2>
+                  <p className="mt-1 text-xs text-slate-400">إحصائيات سريعة</p>
                 </div>
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500/10 text-blue-400">
-                  <TrendingUp className="h-4 w-4" />
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-500/10 text-indigo-400 ring-1 ring-indigo-500/20">
+                  <TrendingUp className="h-5 w-5" />
                 </div>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-1">
                 <SummaryRow label="الطلاب" value={stats.students} />
-                <SummaryRow
-                  label="المحتوى"
-                  value={stats.chapters + stats.lectures}
-                />
+                <SummaryRow label="المحتوى" value={stats.chapters + stats.lectures} />
                 <SummaryRow label="الاختبارات" value={stats.exams} />
-                <SummaryRow label="المحاولات" value={stats.attempts} />
+                <SummaryRow label="المحاولات" value={stats.attempts} border={false} />
               </div>
             </div>
 
             {/* Challenges Card */}
-            <div className="relative overflow-hidden rounded-2xl border border-blue-500/20 bg-gradient-to-br from-slate-900 via-slate-900 to-blue-950/50 p-6 shadow-xl shadow-blue-500/10">
-              <div className="absolute -left-10 -top-10 h-40 w-40 rounded-full bg-blue-500/10 blur-3xl" />
-              <div className="absolute -bottom-8 -right-8 h-32 w-32 rounded-full bg-blue-400/5 blur-2xl" />
+            <div className="group relative overflow-hidden rounded-2xl border border-blue-500/30 bg-gradient-to-br from-slate-900 via-[#0a1122] to-blue-950/60 p-6 shadow-2xl shadow-blue-900/20 transition-all hover:border-blue-400/50">
+              {/* Background glows */}
+              <div className="absolute -left-10 -top-10 h-40 w-40 rounded-full bg-blue-500/20 blur-3xl transition-all group-hover:bg-blue-400/30" />
+              <div className="absolute -bottom-8 -right-8 h-32 w-32 rounded-full bg-indigo-400/10 blur-2xl" />
 
-              <div className="relative">
-                <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-blue-500/10 text-blue-400 ring-1 ring-blue-500/20">
+              <div className="relative z-10">
+                <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-600/10 text-blue-400 ring-1 ring-blue-500/30 shadow-[0_0_15px_rgba(59,130,246,0.2)]">
                   <Trophy className="h-6 w-6" />
                 </div>
 
-                <div className="mb-1 flex items-center gap-2">
-                  <h2 className="text-lg font-bold text-white">
+                <div className="mb-2 flex items-center gap-2">
+                  <h2 className="text-lg font-bold text-white tracking-wide">
                     تحديات BioPulse
                   </h2>
-                  <span className="rounded-full bg-blue-500/10 px-2 py-0.5 text-[10px] font-bold text-blue-400 ring-1 ring-blue-500/20">
+                  <span className="rounded-full bg-blue-500/20 px-2 py-0.5 text-[10px] font-bold text-blue-300 ring-1 ring-blue-500/40 animate-pulse">
                     جديد
                   </span>
                 </div>
 
-                <p className="mt-2 text-sm leading-6 text-slate-400">
-                  نظام البطولات والمنافسات والـ Leaderboard الخاص بالمنصة.
-                  حوّل التعلم إلى تجربة تنافسية عالمية.
+                <p className="mt-2 text-sm leading-relaxed text-slate-300/80">
+                  نظام البطولات والمنافسات والـ Leaderboard الخاص بالمنصة. حوّل التعلم إلى تجربة تنافسية عالمية.
                 </p>
 
                 <button
                   onClick={() => router.push("/admin/challenges")}
-                  className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-blue-500"
+                  className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-blue-500/25 transition-all hover:from-blue-500 hover:to-indigo-500 hover:shadow-blue-500/40 hover:-translate-y-0.5"
                 >
-                  <Zap className="h-4 w-4" />
+                  <Zap className="h-4 w-4 fill-white/20" />
                   إدارة التحديات
                   <ArrowUpLeft className="h-4 w-4" />
                 </button>
@@ -390,10 +383,6 @@ export default function AdminDashboard() {
   );
 }
 
-/* ============================== */
-/* Stat Card */
-/* ============================== */
-
 function StatCard({
   title,
   value,
@@ -404,44 +393,50 @@ function StatCard({
   title: string;
   value: number;
   icon: any;
-  accent: "blue" | "indigo" | "sky" | "violet";
+  accent: "blue" | "indigo" | "sky" | "violet" | "emerald";
   description: string;
 }) {
   const accents = {
-    blue: "bg-blue-500/10 text-blue-400 ring-blue-500/20",
-    indigo: "bg-indigo-500/10 text-indigo-400 ring-indigo-500/20",
-    sky: "bg-sky-500/10 text-sky-400 ring-sky-500/20",
-    violet: "bg-violet-500/10 text-violet-400 ring-violet-500/20",
+    blue: "bg-blue-500/10 text-blue-400 ring-blue-500/20 group-hover:shadow-blue-500/10 group-hover:ring-blue-500/40",
+    indigo: "bg-indigo-500/10 text-indigo-400 ring-indigo-500/20 group-hover:shadow-indigo-500/10 group-hover:ring-indigo-500/40",
+    sky: "bg-sky-500/10 text-sky-400 ring-sky-500/20 group-hover:shadow-sky-500/10 group-hover:ring-sky-500/40",
+    violet: "bg-violet-500/10 text-violet-400 ring-violet-500/20 group-hover:shadow-violet-500/10 group-hover:ring-violet-500/40",
+    emerald: "bg-emerald-500/10 text-emerald-400 ring-emerald-500/20 group-hover:shadow-emerald-500/10 group-hover:ring-emerald-500/40",
+  };
+
+  const progressColors = {
+    blue: "bg-blue-500",
+    indigo: "bg-indigo-500",
+    sky: "bg-sky-500",
+    violet: "bg-violet-500",
+    emerald: "bg-emerald-500",
   };
 
   return (
-    <div className="group rounded-2xl border border-slate-800 bg-slate-900/60 p-5 shadow-lg shadow-black/10 transition duration-300 hover:-translate-y-1 hover:border-slate-700 hover:shadow-xl">
+    <div className="group relative overflow-hidden rounded-2xl border border-slate-700/40 bg-slate-900/40 backdrop-blur-md p-5 shadow-lg shadow-black/10 transition-all duration-300 hover:-translate-y-1 hover:border-slate-600 hover:bg-slate-800/60 hover:shadow-xl">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-sm font-medium text-slate-500">{title}</p>
-          <p className="mt-3 text-3xl font-bold tracking-tight text-white">
+          <p className="text-sm font-medium text-slate-400 transition-colors group-hover:text-slate-300">{title}</p>
+          <p className="mt-2 text-3xl font-extrabold tracking-tight text-white drop-shadow-sm">
             {value.toLocaleString("ar-EG")}
           </p>
-          <p className="mt-1 text-xs text-slate-600">{description}</p>
+          <p className="mt-1.5 text-xs text-slate-500 group-hover:text-slate-400 transition-colors">{description}</p>
         </div>
 
         <div
-          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ring-1 ${accents[accent]}`}
+          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ring-1 transition-all duration-300 shadow-lg ${accents[accent]}`}
         >
           <Icon className="h-5 w-5" />
         </div>
       </div>
 
-      <div className="mt-5 h-1 overflow-hidden rounded-full bg-slate-800">
-        <div className="h-full w-1/3 rounded-full bg-slate-700 transition-all duration-500 group-hover:w-2/3" />
+      {/* Decorative mini progress bar */}
+      <div className="mt-5 h-1 w-full overflow-hidden rounded-full bg-slate-800/50">
+        <div className={`h-full w-1/3 rounded-full transition-all duration-700 group-hover:w-full opacity-70 ${progressColors[accent]}`} />
       </div>
     </div>
   );
 }
-
-/* ============================== */
-/* Quick Action */
-/* ============================== */
 
 function QuickAction({
   icon: Icon,
@@ -459,27 +454,27 @@ function QuickAction({
   onClick: () => void;
 }) {
   const accents = {
-    blue: "bg-blue-500/10 text-blue-400 ring-blue-500/20",
-    indigo: "bg-indigo-500/10 text-indigo-400 ring-indigo-500/20",
+    blue: "bg-blue-500/10 text-blue-400 ring-blue-500/20 shadow-blue-500/10",
+    indigo: "bg-indigo-500/10 text-indigo-400 ring-indigo-500/20 shadow-indigo-500/10",
   };
 
   const buttonAccents = {
-    blue: "bg-blue-600 hover:bg-blue-500 text-white",
-    indigo: "bg-indigo-600 hover:bg-indigo-500 text-white",
+    blue: "bg-blue-600 hover:bg-blue-500 text-white shadow-blue-900/20",
+    indigo: "bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-900/20",
   };
 
   return (
-    <div className="group rounded-2xl border border-slate-800 bg-slate-900/60 p-5 shadow-lg shadow-black/10 transition hover:border-slate-700">
+    <div className="group rounded-2xl border border-slate-700/40 bg-slate-900/40 backdrop-blur-md p-5 shadow-lg shadow-black/10 transition-all duration-300 hover:border-slate-600 hover:bg-slate-800/50 hover:shadow-xl hover:-translate-y-0.5">
       <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-4">
           <div
-            className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ring-1 ${accents[accent]}`}
+            className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ring-1 shadow-lg transition-transform duration-300 group-hover:scale-110 ${accents[accent]}`}
           >
             <Icon className="h-5 w-5" />
           </div>
           <div>
-            <h3 className="font-bold text-white">{title}</h3>
-            <p className="mt-1 max-w-xl text-sm leading-6 text-slate-500">
+            <h3 className="font-bold text-slate-100 group-hover:text-white transition-colors">{title}</h3>
+            <p className="mt-1 max-w-xl text-sm leading-relaxed text-slate-400">
               {description}
             </p>
           </div>
@@ -487,25 +482,21 @@ function QuickAction({
 
         <button
           onClick={onClick}
-          className={`inline-flex shrink-0 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition ${buttonAccents[accent]}`}
+          className={`inline-flex shrink-0 items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold shadow-lg transition-all active:scale-95 ${buttonAccents[accent]}`}
         >
           {buttonText}
-          <ArrowUpLeft className="h-4 w-4" />
+          <ArrowUpLeft className="h-4 w-4 transition-transform group-hover:translate-x-1 group-hover:-translate-y-1" />
         </button>
       </div>
     </div>
   );
 }
 
-/* ============================== */
-/* Summary Row */
-/* ============================== */
-
-function SummaryRow({ label, value }: { label: string; value: number }) {
+function SummaryRow({ label, value, border = true }: { label: string; value: number, border?: boolean }) {
   return (
-    <div className="flex items-center justify-between">
-      <span className="text-sm text-slate-500">{label}</span>
-      <span className="text-sm font-bold text-slate-100">
+    <div className={`flex items-center justify-between p-3 rounded-lg transition-colors hover:bg-slate-800/40 ${border ? 'border-b border-slate-800/50' : ''}`}>
+      <span className="text-sm font-medium text-slate-400">{label}</span>
+      <span className="text-sm font-bold text-slate-200">
         {value.toLocaleString("ar-EG")}
       </span>
     </div>
