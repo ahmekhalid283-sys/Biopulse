@@ -7,7 +7,6 @@ import {
   Swords,
   ArrowRight,
   Trophy,
-  Users,
   Clock,
   Layers,
   Play,
@@ -15,13 +14,13 @@ import {
   CheckCircle2,
   XCircle,
   Hourglass,
+  Sparkles,
 } from "lucide-react";
 
 type Challenge = {
   id: string;
   title: string;
   description: string | null;
-  challenge_type: string | null;
   difficulty: string | null;
   status: string | null;
   duration_minutes: number | null;
@@ -52,7 +51,6 @@ export default function StudentChallengeDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [challenge, setChallenge] = useState<Challenge | null>(null);
   const [roundsView, setRoundsView] = useState<RoundView[]>([]);
-  const [studentId, setStudentId] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
 
   useEffect(() => {
@@ -83,12 +81,11 @@ export default function StudentChallengeDetailsPage() {
         setErrorMsg("لم يتم العثور على بيانات الطالب");
         return;
       }
-      setStudentId(student.id);
 
       const { data: challengeData, error: challengeError } = await supabase
         .from("challenges")
         .select(
-          "id, title, description, challenge_type, difficulty, status, duration_minutes, passing_score"
+          "id, title, description, difficulty, status, duration_minutes, passing_score"
         )
         .eq("id", challengeId)
         .in("status", ["registration", "upcoming", "active", "finished"])
@@ -110,7 +107,6 @@ export default function StudentChallengeDetailsPage() {
 
       const rounds = roundsData || [];
 
-      // تأهلات الطالب
       const { data: entries } = await supabase
         .from("challenge_round_entries")
         .select("round_id, status")
@@ -121,32 +117,48 @@ export default function StudentChallengeDetailsPage() {
         (entries || []).map((e) => [e.round_id, e.status])
       );
 
-      // محاولات الطالب
-      const { data: attempts } = await supabase
-        .from("challenge_attempts")
-        .select("round_id, status")
+      // محاولات عبر participant (مفيش student_id مباشرة على attempts أحيانًا)
+      const { data: participant } = await supabase
+        .from("challenge_participants")
+        .select("id")
         .eq("challenge_id", challengeId)
-        .eq("student_id", student.id);
+        .eq("student_id", student.id)
+        .maybeSingle();
 
-      const attemptedRounds = new Set(
-        (attempts || []).map((a) => a.round_id).filter(Boolean)
-      );
+      let attemptedRounds = new Set<string>();
+
+      if (participant?.id) {
+        const { data: attempts } = await supabase
+          .from("challenge_attempts")
+          .select("round_id")
+          .eq("challenge_id", challengeId)
+          .eq("participant_id", participant.id);
+
+        attemptedRounds = new Set(
+          (attempts || []).map((a) => a.round_id).filter(Boolean) as string[]
+        );
+      } else {
+        // fallback لو عندك student_id على attempts
+        const { data: attempts } = await supabase
+          .from("challenge_attempts")
+          .select("round_id")
+          .eq("challenge_id", challengeId)
+          .eq("student_id", student.id);
+
+        attemptedRounds = new Set(
+          (attempts || []).map((a) => a.round_id).filter(Boolean) as string[]
+        );
+      }
 
       const view: RoundView[] = rounds.map((round, index) => {
         const entryStatus = entryMap.get(round.id);
         const hasAttempted = attemptedRounds.has(round.id);
         const isFirst = round.round_number === 1 || index === 0;
 
-        // خلص الدور ده
         if (hasAttempted) {
-          return {
-            ...round,
-            state: "done" as const,
-            label: "تم تسليم إجاباتك",
-          };
+          return { ...round, state: "done" as const, label: "تم تسليم إجاباتك" };
         }
 
-        // الدور الأول: مفتوح للكل
         if (isFirst) {
           return {
             ...round,
@@ -155,7 +167,6 @@ export default function StudentChallengeDetailsPage() {
           };
         }
 
-        // متأهل من الأدمن
         if (entryStatus === "qualified") {
           return {
             ...round,
@@ -164,7 +175,6 @@ export default function StudentChallengeDetailsPage() {
           };
         }
 
-        // مستبعد
         if (entryStatus === "eliminated") {
           return {
             ...round,
@@ -173,7 +183,6 @@ export default function StudentChallengeDetailsPage() {
           };
         }
 
-        // السابق اتعمل محاولة ولسه مفيش قرار
         const prev = rounds[index - 1];
         if (prev && attemptedRounds.has(prev.id)) {
           return {
@@ -203,27 +212,32 @@ export default function StudentChallengeDetailsPage() {
     switch (state) {
       case "playable":
         return {
-          badge: "bg-emerald-500/15 text-emerald-400 border-emerald-500/20",
+          badge: "border-emerald-500/30 bg-emerald-500/15 text-emerald-400",
+          ring: "border-emerald-500/40",
           icon: Play,
         };
       case "waiting":
         return {
-          badge: "bg-amber-500/15 text-amber-400 border-amber-500/20",
+          badge: "border-amber-500/30 bg-amber-500/15 text-amber-400",
+          ring: "border-amber-500/30",
           icon: Hourglass,
         };
       case "eliminated":
         return {
-          badge: "bg-red-500/15 text-red-400 border-red-500/20",
+          badge: "border-red-500/30 bg-red-500/15 text-red-400",
+          ring: "border-red-500/30",
           icon: XCircle,
         };
       case "done":
         return {
-          badge: "bg-blue-500/15 text-blue-400 border-blue-500/20",
+          badge: "border-blue-500/30 bg-blue-500/15 text-blue-400",
+          ring: "border-blue-500/30",
           icon: CheckCircle2,
         };
       default:
         return {
-          badge: "bg-slate-700/40 text-slate-400 border-slate-600/40",
+          badge: "border-slate-700 bg-slate-800/60 text-slate-400",
+          ring: "border-slate-800",
           icon: Lock,
         };
     }
@@ -233,7 +247,7 @@ export default function StudentChallengeDetailsPage() {
     return (
       <main
         dir="rtl"
-        className="flex min-h-screen items-center justify-center bg-slate-950 text-white"
+        className="flex min-h-screen items-center justify-center bg-[#070b14] text-white"
       >
         جاري التحميل...
       </main>
@@ -244,13 +258,13 @@ export default function StudentChallengeDetailsPage() {
     return (
       <main
         dir="rtl"
-        className="flex min-h-screen flex-col items-center justify-center bg-slate-950 p-6 text-white"
+        className="flex min-h-screen flex-col items-center justify-center bg-[#070b14] p-6 text-white"
       >
         <Lock className="h-12 w-12 text-slate-600" />
-        <h1 className="mt-4 text-xl font-bold">{errorMsg || "غير متاح"}</h1>
+        <h1 className="mt-4 text-xl font-black">{errorMsg || "غير متاح"}</h1>
         <button
           onClick={() => router.push("/challenges")}
-          className="mt-6 rounded-xl bg-cyan-500 px-5 py-2.5 text-sm font-bold text-slate-950"
+          className="mt-6 rounded-2xl bg-cyan-500 px-5 py-3 text-sm font-black text-slate-950"
         >
           العودة للتحديات
         </button>
@@ -264,119 +278,129 @@ export default function StudentChallengeDetailsPage() {
   return (
     <main
       dir="rtl"
-      className="min-h-screen bg-slate-950 p-4 text-white sm:p-6 lg:p-8"
+      className="min-h-screen bg-[#070b14] p-4 text-white sm:p-6 lg:p-10"
     >
       <div className="mx-auto max-w-4xl space-y-6">
         <button
           onClick={() => router.push("/challenges")}
-          className="inline-flex items-center gap-2 text-sm font-bold text-slate-400 hover:text-cyan-400"
+          className="inline-flex items-center gap-2 text-sm font-bold text-slate-400 transition hover:text-cyan-400"
         >
           <ArrowRight className="h-4 w-4" />
           العودة للتحديات
         </button>
 
-        {/* Header */}
-        <section className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6">
-          <div className="flex items-start gap-4">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-cyan-500/15 text-cyan-400">
-              <Swords className="h-7 w-7" />
+        {/* Header card */}
+        <section className="overflow-hidden rounded-3xl border border-slate-800 bg-[#0b111e] shadow-xl">
+          <div className="border-b border-slate-800/80 bg-gradient-to-l from-cyan-500/10 via-transparent to-transparent p-6 sm:p-8">
+            <div className="flex items-start gap-4">
+              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border border-cyan-500/20 bg-cyan-500/15 text-cyan-400">
+                <Swords className="h-8 w-8" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h1 className="text-2xl font-black tracking-tight sm:text-3xl">
+                    {challenge.title}
+                  </h1>
+                  <Sparkles className="h-5 w-5 text-cyan-400" />
+                </div>
+                <p className="mt-2 text-sm leading-7 text-slate-400">
+                  {challenge.description || "لا يوجد وصف لهذا التحدي."}
+                </p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-2xl font-bold sm:text-3xl">
-                {challenge.title}
-              </h1>
-              <p className="mt-2 text-sm leading-6 text-slate-400">
-                {challenge.description || "لا يوجد وصف."}
-              </p>
+
+            <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <InfoBox
+                icon={Trophy}
+                label="الصعوبة"
+                value={challenge.difficulty || "—"}
+              />
+              <InfoBox
+                icon={Clock}
+                label="المدة"
+                value={
+                  challenge.duration_minutes
+                    ? `${challenge.duration_minutes} دقيقة`
+                    : "—"
+                }
+              />
+              <InfoBox
+                icon={Trophy}
+                label="درجة النجاح"
+                value={
+                  challenge.passing_score
+                    ? `${challenge.passing_score}%`
+                    : "—"
+                }
+              />
             </div>
+
+            {isEliminated && (
+              <div className="mt-5 rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm font-bold text-red-300">
+                أنت خارج هذا التحدي — نشوفك في التحديات القادمة 💪
+              </div>
+            )}
+
+            {playableRound && (
+              <button
+                onClick={() =>
+                  router.push(
+                    `/challenges/${challengeId}/play?roundId=${playableRound.id}`
+                  )
+                }
+                className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-cyan-500 px-6 py-3.5 text-sm font-black text-slate-950 shadow-lg shadow-cyan-500/20 transition hover:bg-cyan-400 sm:w-auto"
+              >
+                <Play className="h-4 w-4" />
+                دخول {playableRound.title}
+              </button>
+            )}
           </div>
-
-          <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <InfoBox
-              icon={Users}
-              label="النوع"
-              value={challenge.challenge_type === "team" ? "جماعي" : "فردي"}
-            />
-            <InfoBox
-              icon={Trophy}
-              label="الصعوبة"
-              value={challenge.difficulty || "—"}
-            />
-            <InfoBox
-              icon={Clock}
-              label="المدة"
-              value={
-                challenge.duration_minutes
-                  ? `${challenge.duration_minutes} د`
-                  : "—"
-              }
-            />
-            <InfoBox
-              icon={Trophy}
-              label="النجاح"
-              value={
-                challenge.passing_score ? `${challenge.passing_score}%` : "—"
-              }
-            />
-          </div>
-
-          {isEliminated && (
-            <div className="mt-5 rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-300">
-              أنت خارج هذا التحدي. نشوفك في التحديات القادمة 💪
-            </div>
-          )}
-
-          {playableRound && (
-            <button
-              onClick={() =>
-                router.push(
-                  `/challenges/${challengeId}/play?roundId=${playableRound.id}`
-                )
-              }
-              className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-cyan-500 px-5 py-3.5 text-sm font-bold text-slate-950 hover:bg-cyan-400 sm:w-auto"
-            >
-              <Play className="h-4 w-4" />
-              دخول {playableRound.title}
-            </button>
-          )}
         </section>
 
-        {/* Rounds timeline */}
+        {/* Rounds */}
         {roundsView.length > 0 && (
           <section className="space-y-4">
             <div className="flex items-center gap-2">
-              <Layers className="h-5 w-5 text-cyan-400" />
-              <h2 className="text-lg font-bold">مسار التصفيات</h2>
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-cyan-500/15 text-cyan-400">
+                <Layers className="h-4 w-4" />
+              </div>
+              <div>
+                <h2 className="text-lg font-black">مسار التصفيات</h2>
+                <p className="text-xs text-slate-500">
+                  تابع تقدمك عبر أدوار التحدي
+                </p>
+              </div>
             </div>
 
-            <div className="relative space-y-3">
+            <div className="relative space-y-4">
               {roundsView.map((round, index) => {
                 const styles = stateStyles(round.state);
                 const Icon = styles.icon;
 
                 return (
                   <div key={round.id} className="relative flex gap-4">
-                    {/* timeline line */}
                     {index < roundsView.length - 1 && (
-                      <div className="absolute right-[19px] top-12 h-[calc(100%-8px)] w-0.5 bg-slate-800" />
+                      <div className="absolute right-[21px] top-14 h-[calc(100%-12px)] w-0.5 bg-slate-800" />
                     )}
 
                     <div
-                      className={`relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border ${styles.badge}`}
+                      className={`relative z-10 flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border ${styles.badge}`}
                     >
                       <Icon className="h-4 w-4" />
                     </div>
 
-                    <div className="flex-1 rounded-2xl border border-slate-800 bg-slate-900/50 p-4">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div
+                      className={`flex-1 rounded-3xl border bg-[#0b111e] p-5 transition ${styles.ring}`}
+                    >
+                      <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
-                          <h3 className="font-bold">
+                          <h3 className="text-base font-black text-white">
                             {round.title}
                             <span className="mr-2 text-xs font-normal text-slate-500">
-                              (دور {round.round_number})
+                              دور {round.round_number}
                             </span>
                           </h3>
-                          <p className="mt-1 text-xs text-slate-500">
+                          <p className="mt-1.5 text-xs text-slate-500">
                             {round.duration_minutes
                               ? `${round.duration_minutes} دقيقة`
                               : ""}
@@ -390,7 +414,7 @@ export default function StudentChallengeDetailsPage() {
                         </div>
 
                         <span
-                          className={`rounded-lg border px-2.5 py-1 text-xs font-bold ${styles.badge}`}
+                          className={`rounded-xl border px-3 py-1.5 text-xs font-black ${styles.badge}`}
                         >
                           {round.label}
                         </span>
@@ -403,7 +427,7 @@ export default function StudentChallengeDetailsPage() {
                               `/challenges/${challengeId}/play?roundId=${round.id}`
                             )
                           }
-                          className="mt-3 inline-flex items-center gap-2 rounded-xl bg-cyan-500 px-4 py-2 text-xs font-bold text-slate-950 hover:bg-cyan-400"
+                          className="mt-4 inline-flex items-center gap-2 rounded-xl bg-cyan-500 px-4 py-2.5 text-xs font-black text-slate-950 hover:bg-cyan-400"
                         >
                           <Play className="h-3.5 w-3.5" />
                           ابدأ الآن
@@ -431,12 +455,12 @@ function InfoBox({
   value: string;
 }) {
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-950/50 p-3">
+    <div className="rounded-2xl border border-slate-800 bg-[#070b14]/80 p-4">
       <div className="flex items-center gap-2 text-slate-500">
         <Icon className="h-3.5 w-3.5" />
-        <span className="text-[11px] font-semibold">{label}</span>
+        <span className="text-[11px] font-bold">{label}</span>
       </div>
-      <p className="mt-1.5 text-sm font-bold text-white">{value}</p>
+      <p className="mt-2 text-sm font-black text-white">{value}</p>
     </div>
   );
 }
