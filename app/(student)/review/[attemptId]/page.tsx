@@ -9,13 +9,13 @@ import { CheckCircle2, XCircle } from "lucide-react";
 type ReviewQuestion = {
   id: string;
   question: string;
-  option_a: string;
-  option_b: string;
-  option_c: string;
-  option_d: string;
-  correct_answer: string;
-  explanation: string | null;
-  image_url: string | null;
+  question_type: "mcq" | "true_false" | "written";
+  option_a: string | null;
+  option_b: string | null;
+  option_c: string | null;
+  option_d: string | null;
+  correct_answer: string | null;
+  question_image_url: string | null;
   marks: number;
   question_order?: number;
 };
@@ -23,7 +23,7 @@ type ReviewQuestion = {
 type ReviewAnswer = {
   question_id: string;
   student_answer: string;
-  is_correct: boolean;
+  is_correct: boolean | null;
 };
 
 export default function ReviewPage() {
@@ -52,17 +52,29 @@ export default function ReviewPage() {
       return;
     }
 
-    const { data: qs } = await supabase
-      .from("questions")
+    const { data: qs, error: questionsError } = await supabase
+      .from("exam_questions")
       .select(`
-        *,
+        id,
         exam_id,
+        question,
+        question_type,
+        option_a,
+        option_b,
+        option_c,
+        option_d,
+        correct_answer,
+        question_image_url,
+        marks,
         question_order
       `)
       .eq("exam_id", attempt.exam_id)
-      .order("question_order");
+      .order("question_order", { ascending: true });
+    
+    console.log("Questions Error:", questionsError);
+    console.log("Questions Data:", qs);
 
-    const { data: ans } = await supabase
+    const { data: ans, error: answersError } = await supabase
       .from("exam_answers")
       .select(`
         question_id,
@@ -71,15 +83,25 @@ export default function ReviewPage() {
       `)
       .eq("attempt_id", attemptId);
 
+    console.log("Answers Error:", answersError);
+    console.log("Answers Data:", ans);
+
     console.log("Attempt ID:", attemptId);
-    console.log("Questions:", qs);
-    console.log("Answers:", ans);
     console.log("First Answer:", ans?.[0]);
 
     const map: Record<string, ReviewAnswer> = {};
-    ans?.forEach((a) => {
-      map[a.question_id] = a;
+
+    (ans || []).forEach((a) => {
+      console.log("ANSWER QUESTION ID:", a.question_id);
+
+      map[a.question_id] = {
+        question_id: a.question_id,
+        student_answer: a.student_answer ?? "",
+        is_correct: a.is_correct ?? null,
+      };
     });
+
+    console.log("ANSWERS MAP:", map);
 
     setAnswers(map);
     setQuestions(qs || []);
@@ -88,14 +110,14 @@ export default function ReviewPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-slate-950 flex items-center justify-center text-white">
+      <main dir="rtl" className="min-h-screen bg-slate-950 flex items-center justify-center text-white">
         جارٍ تحميل المراجعة...
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-slate-950 text-white p-8">
+    <main dir="rtl" className="min-h-screen bg-slate-950 text-white p-8">
       <div className="max-w-6xl mx-auto space-y-8">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-5xl font-black text-cyan-400">
@@ -114,7 +136,7 @@ export default function ReviewPage() {
 
           const studentAns = answer?.student_answer?.trim().toUpperCase() ?? "";
           const correctAns = q.correct_answer?.trim().toUpperCase() ?? "";
-          const isCorrect = answer?.is_correct ?? false;
+          const isCorrect = answer?.is_correct;
 
           return (
             <div
@@ -131,7 +153,12 @@ export default function ReviewPage() {
                     <XCircle />
                     لم تتم الإجابة
                   </div>
-                ) : isCorrect ? (
+                ) : q.question_type === "written" && isCorrect === null ? (
+                  <div className="flex items-center gap-2 text-yellow-400 font-bold">
+                    <span className="text-xl">⏳</span>
+                    في انتظار التصحيح
+                  </div>
+                ) : isCorrect === true ? (
                   <div className="flex items-center gap-2 text-green-400 font-bold">
                     <CheckCircle2 />
                     إجابة صحيحة
@@ -148,60 +175,84 @@ export default function ReviewPage() {
                 {q.question}
               </p>
 
-              {q.image_url && (
+              {q.question_image_url && (
                 <img
-                  src={q.image_url}
+                  src={q.question_image_url}
                   className="rounded-2xl mb-6"
                   alt=""
                 />
               )}
 
-              {[
-                ["A", q.option_a],
-                ["B", q.option_b],
-                ["C", q.option_c],
-                ["D", q.option_d],
-              ].map(([key, text]) => {
-                const optionIsCorrect = correctAns === key;
-                const optionIsStudent = studentAns === key;
+              {q.question_type === "written" ? (
+                <div className="mt-5 rounded-2xl border border-slate-700 bg-slate-900 p-5">
+                  <h3 className="mb-3 font-bold text-cyan-400">
+                    إجابة الطالب
+                  </h3>
 
-                return (
-                  <div
-                    key={key}
-                    className={`mb-3 rounded-xl border p-4 transition-all ${
-                      optionIsCorrect
-                        ? "border-green-500 bg-green-500/20 text-green-200"
-                        : optionIsStudent
-                        ? "border-red-500 bg-red-500/20 text-red-200"
-                        : "border-slate-700 bg-slate-900"
-                    }`}
-                  >
-                    <span className="font-bold mr-2">
-                      {key})
-                    </span>
-                    {text}
+                  <p className="text-lg text-slate-200 leading-8">
+                    {answer?.student_answer || "لم تتم الإجابة"}
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {(
+                    q.question_type === "true_false"
+                      ? [
+                          ["A", "صح"],
+                          ["B", "خطأ"],
+                        ]
+                      : [
+                          ["A", q.option_a],
+                          ["B", q.option_b],
+                          ["C", q.option_c],
+                          ["D", q.option_d],
+                        ]
+                  )
+                    .filter(([, text]) => text)
+                    .map(([key, text]) => {
+                      const optionIsCorrect = correctAns === key;
+                      const optionIsStudent = studentAns === key;
 
-                    {optionIsCorrect && (
-                      <span className="ml-3 text-green-400 font-bold">
-                        ✔ الإجابة الصحيحة
-                      </span>
-                    )}
+                      return (
+                        <div
+                          key={key}
+                          className={`rounded-xl border p-4 ${
+                            optionIsCorrect
+                              ? "border-green-500 bg-green-500/20 text-green-200"
+                              : optionIsStudent
+                              ? "border-red-500 bg-red-500/20 text-red-200"
+                              : "border-slate-700 bg-slate-900"
+                          }`}
+                        >
+                          <span className="font-bold ml-2">
+                            {key})
+                          </span>
 
-                    {optionIsStudent && !optionIsCorrect && (
-                      <span className="ml-3 text-red-400 font-bold">
-                        ✖ اختيارك
-                      </span>
-                    )}
-                  </div>
-                );
-              })}
+                          {text}
+
+                          {optionIsCorrect && (
+                            <span className="mr-3 text-green-400 font-bold">
+                              ✔ الإجابة الصحيحة
+                            </span>
+                          )}
+
+                          {optionIsStudent && !optionIsCorrect && (
+                            <span className="mr-3 text-red-400 font-bold">
+                              ✖ اختيارك
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
+                </div>
+              )}
 
               <div className="mt-6 rounded-2xl bg-slate-900 p-5 border border-cyan-500/20">
                 <h3 className="font-bold text-cyan-400 mb-3">
                   التفسير
                 </h3>
                 <p className="text-slate-300 leading-8">
-                  {q.explanation || "لا يوجد تفسير لهذا السؤال."}
+                  لا يوجد تفسير لهذا السؤال.
                 </p>
               </div>
             </div>

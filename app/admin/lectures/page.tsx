@@ -14,7 +14,6 @@ import {
   Trash2,
   Upload,
   Layers3,
-  Clock3,
   PlayCircle,
   Lightbulb,
 } from "lucide-react";
@@ -29,13 +28,19 @@ export default function AdminLecturesPage() {
   const [chapterId, setChapterId] = useState("");
 
   const [title, setTitle] = useState("");
-  const [duration, setDuration] = useState("");
 
-  // فيديو الشرح
+  // فيديو الشرح القديم (للتوافق)
   const [youtube, setYoutube] = useState("");
 
-  // فيديو الحل
-  const [solutionYoutube, setSolutionYoutube] = useState("");
+  // قائمة فيديوهات الشرح المتعددة
+  const [lectureVideos, setLectureVideos] = useState<
+    { title: string; youtube_url: string }[]
+  >([{ title: "فيديو الشرح 1", youtube_url: "" }]);
+
+  // قائمة فيديوهات الحل المتعددة الجديدة
+  const [solutionVideos, setSolutionVideos] = useState<
+    { title: string; youtube_url: string }[]
+  >([{ title: "فيديو الحل 1", youtube_url: "" }]);
 
   const [lectureOrder, setLectureOrder] = useState("");
 
@@ -112,22 +117,53 @@ export default function AdminLecturesPage() {
     loadLectures();
   }
 
-  function editLecture(lecture: any) {
+  async function editLecture(lecture: any) {
     setEditingId(lecture.id);
 
     setChapterId(lecture.chapter_id);
     setTitle(lecture.title);
-    setDuration(lecture.duration || "");
 
     // فيديو الشرح
     setYoutube(lecture.youtube_url || "");
-
-    // فيديو الحل
-    setSolutionYoutube(lecture.solution_youtube_url || "");
-
     setLectureOrder(String(lecture.lecture_order));
 
     setPdfFile(null);
+
+    // جلب الفيديوهات المتعددة الخاصة بالمحاضرة (الشرح)
+    const { data: videoData } = await supabase
+      .from("lecture_videos")
+      .select("title, youtube_url")
+      .eq("lecture_id", lecture.id)
+      .order("video_order", { ascending: true });
+
+    if (videoData && videoData.length > 0) {
+      setLectureVideos(videoData);
+    } else {
+      setLectureVideos([
+        {
+          title: "فيديو الشرح 1",
+          youtube_url: lecture.youtube_url || "",
+        },
+      ]);
+    }
+
+    // جلب فيديوهات الحل المتعددة
+    const { data: solutionVideoData } = await supabase
+      .from("lecture_solution_videos")
+      .select("title, youtube_url")
+      .eq("lecture_id", lecture.id)
+      .order("video_order", { ascending: true });
+
+    if (solutionVideoData && solutionVideoData.length > 0) {
+      setSolutionVideos(solutionVideoData);
+    } else {
+      setSolutionVideos([
+        {
+          title: "فيديو الحل 1",
+          youtube_url: lecture.solution_youtube_url || "",
+        },
+      ]);
+    }
 
     window.scrollTo({
       top: 0,
@@ -138,21 +174,33 @@ export default function AdminLecturesPage() {
   function resetForm() {
     setEditingId(null);
     setTitle("");
-    setDuration("");
     setYoutube("");
-    setSolutionYoutube("");
     setLectureOrder("");
     setPdfFile(null);
+    setLectureVideos([
+      { title: "فيديو الشرح 1", youtube_url: "" },
+    ]);
+    setSolutionVideos([
+      { title: "فيديو الحل 1", youtube_url: "" },
+    ]);
   }
 
   async function handleSave() {
+    const validVideos = lectureVideos.filter(
+      (video) => video.youtube_url.trim()
+    );
+
+    const validSolutionVideos = solutionVideos.filter(
+      (video) => video.youtube_url.trim()
+    );
+
     if (
       !chapterId ||
       !title ||
-      !youtube ||
+      validVideos.length === 0 ||
       !lectureOrder
     ) {
-      alert("املأ جميع البيانات الأساسية");
+      alert("املأ جميع البيانات الأساسية وفيديو شرح واحد على الأقل");
       return;
     }
 
@@ -189,14 +237,16 @@ export default function AdminLecturesPage() {
       pdfUrl = urlData.publicUrl;
     }
 
+    let targetLectureId = editingId;
+
     if (editingId) {
       const updateData: any = {
         chapter_id: chapterId,
         title,
         lecture_order: Number(lectureOrder),
-        duration,
-        youtube_url: youtube,
-        solution_youtube_url: solutionYoutube.trim() || null,
+        youtube_url: validVideos[0].youtube_url,
+        solution_youtube_url:
+          validSolutionVideos[0]?.youtube_url.trim() || null,
       };
 
       if (pdfUrl) {
@@ -208,39 +258,93 @@ export default function AdminLecturesPage() {
         .update(updateData)
         .eq("id", editingId);
 
-      setLoading(false);
-
       if (error) {
+        setLoading(false);
         alert(error.message);
         return;
       }
-
-      alert("تم تعديل المحاضرة بنجاح ✅");
     } else {
-      const { error } = await supabase
+      const { data: insertedLecture, error } = await supabase
         .from("lectures")
         .insert({
           chapter_id: chapterId,
           title,
           lecture_order: Number(lectureOrder),
-          duration,
-          youtube_url: youtube,
-          solution_youtube_url: solutionYoutube.trim() || null,
+          youtube_url: validVideos[0].youtube_url,
+          solution_youtube_url:
+            validSolutionVideos[0]?.youtube_url.trim() || null,
           pdf_url: pdfUrl,
           is_workshop: false,
           is_free: false,
           is_published: true,
-        });
-
-      setLoading(false);
+        })
+        .select("id")
+        .single();
 
       if (error) {
+        setLoading(false);
         alert(error.message);
         return;
       }
 
-      alert("تمت إضافة المحاضرة بنجاح ✅");
+      targetLectureId = insertedLecture.id;
     }
+
+    if (targetLectureId) {
+      // حفظ / تحديث فيديوهات الشرح
+      await supabase
+        .from("lecture_videos")
+        .delete()
+        .eq("lecture_id", targetLectureId);
+
+      const videosToInsert = validVideos.map((video, index) => ({
+        lecture_id: targetLectureId,
+        title: video.title.trim() || `فيديو الشرح ${index + 1}`,
+        youtube_url: video.youtube_url.trim(),
+        video_order: index + 1,
+      }));
+
+      const { error: videosError } = await supabase
+        .from("lecture_videos")
+        .insert(videosToInsert);
+
+      if (videosError) {
+        setLoading(false);
+        alert(videosError.message);
+        return;
+      }
+
+      // حفظ / تحديث فيديوهات الحل
+      await supabase
+        .from("lecture_solution_videos")
+        .delete()
+        .eq("lecture_id", targetLectureId);
+
+      if (validSolutionVideos.length > 0) {
+        const solutionVideosToInsert = validSolutionVideos.map(
+          (video, index) => ({
+            lecture_id: targetLectureId,
+            title:
+              video.title.trim() || `فيديو الحل ${index + 1}`,
+            youtube_url: video.youtube_url.trim(),
+            video_order: index + 1,
+          })
+        );
+
+        const { error: solutionVideosError } = await supabase
+          .from("lecture_solution_videos")
+          .insert(solutionVideosToInsert);
+
+        if (solutionVideosError) {
+          setLoading(false);
+          alert(solutionVideosError.message);
+          return;
+        }
+      }
+    }
+
+    setLoading(false);
+    alert(editingId ? "تم تعديل المحاضرة بنجاح ✅" : "تمت إضافة المحاضرة بنجاح ✅");
 
     resetForm();
     loadLectures();
@@ -280,6 +384,7 @@ export default function AdminLecturesPage() {
             </div>
             {editingId && (
               <button
+                type="button"
                 onClick={resetForm}
                 className="rounded-xl border border-slate-800 bg-[#070b14] px-3.5 py-1.5 text-xs font-semibold text-slate-300 transition hover:bg-slate-800 hover:text-white"
               >
@@ -339,46 +444,186 @@ export default function AdminLecturesPage() {
                 />
               </div>
 
-              {/* Duration */}
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-300 flex items-center gap-2">
-                  <Clock3 className="w-4 h-4 text-blue-400" />
-                  مدة المحاضرة
-                </label>
-                <Input
-                  placeholder="مثال: 45 دقيقة"
-                  value={duration}
-                  onChange={(e) => setDuration(e.target.value)}
-                  className="h-12 rounded-2xl border-slate-800 bg-[#070b14] px-4 text-sm font-semibold text-white outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
-                />
+              {/* Lecture Videos List */}
+              <div className="md:col-span-2 space-y-4">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-slate-300 flex items-center gap-2">
+                    <PlayCircle className="w-4 h-4 text-cyan-400" />
+                    فيديوهات الشرح
+                  </label>
+
+                  <Button
+                    type="button"
+                    onClick={() =>
+                      setLectureVideos((prev) => [
+                        ...prev,
+                        {
+                          title: `فيديو الشرح ${prev.length + 1}`,
+                          youtube_url: "",
+                        },
+                      ])
+                    }
+                    className="h-9 px-3 rounded-xl bg-cyan-500 hover:bg-cyan-600 text-slate-950 font-bold text-sm flex flex-row items-center justify-center gap-1"
+                  >
+                    <Plus className="w-4 h-4 shrink-0" />
+                    إضافة فيديو
+                  </Button>
+                </div>
+
+                <div className="space-y-3">
+                  {lectureVideos.map((video, index) => (
+                    <div
+                      key={index}
+                      className="rounded-2xl border border-slate-800 bg-[#070b14] p-4"
+                    >
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-sm font-black text-cyan-400">
+                          فيديو الشرح {index + 1}
+                        </span>
+
+                        {lectureVideos.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setLectureVideos((prev) =>
+                                prev.filter((_, i) => i !== index)
+                              )
+                            }
+                            className="text-red-400 hover:text-red-300"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <Input
+                          placeholder={`عنوان فيديو الشرح ${index + 1}`}
+                          value={video.title}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setLectureVideos((prev) =>
+                              prev.map((item, i) =>
+                                i === index
+                                  ? { ...item, title: val }
+                                  : item
+                              )
+                            );
+                          }}
+                          className="h-12 rounded-2xl border-slate-800 bg-[#0b111e] text-white"
+                        />
+
+                        <Input
+                          placeholder="https://youtube.com/..."
+                          value={video.youtube_url}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setLectureVideos((prev) =>
+                              prev.map((item, i) =>
+                                i === index
+                                  ? { ...item, youtube_url: val }
+                                  : item
+                              )
+                            );
+                          }}
+                          className="h-12 rounded-2xl border-slate-800 bg-[#0b111e] text-white"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
 
-              {/* YouTube URL */}
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-300 flex items-center gap-2">
-                  <PlayCircle className="w-4 h-4 text-cyan-400" />
-                  رابط فيديو الشرح (يوتيوب)
-                </label>
-                <Input
-                  placeholder="https://youtube.com/..."
-                  value={youtube}
-                  onChange={(e) => setYoutube(e.target.value)}
-                  className="h-12 rounded-2xl border-slate-800 bg-[#070b14] px-4 text-sm font-semibold text-white outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
-                />
-              </div>
+              {/* Solution Videos List */}
+              <div className="md:col-span-2 space-y-4">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-slate-300 flex items-center gap-2">
+                    <Lightbulb className="w-4 h-4 text-orange-400" />
+                    فيديوهات الحل (اختياري)
+                  </label>
 
-              {/* Solution YouTube URL */}
-              <div className="md:col-span-2 space-y-2">
-                <label className="text-xs font-bold text-slate-300 flex items-center gap-2">
-                  <Lightbulb className="w-4 h-4 text-orange-400" />
-                  رابط فيديو الحل (اختياري)
-                </label>
-                <Input
-                  placeholder="https://youtube.com/..."
-                  value={solutionYoutube}
-                  onChange={(e) => setSolutionYoutube(e.target.value)}
-                  className="h-12 rounded-2xl border-slate-800 bg-[#070b14] px-4 text-sm font-semibold text-white outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
-                />
+                  <Button
+                    type="button"
+                    onClick={() =>
+                      setSolutionVideos((prev) => [
+                        ...prev,
+                        {
+                          title: `فيديو الحل ${prev.length + 1}`,
+                          youtube_url: "",
+                        },
+                      ])
+                    }
+                    className="h-9 px-3 rounded-xl bg-orange-500 hover:bg-orange-600 text-slate-950 font-bold text-sm flex flex-row items-center justify-center gap-1"
+                  >
+                    <Plus className="w-4 h-4 shrink-0" />
+                    إضافة فيديو
+                  </Button>
+                </div>
+
+                <div className="space-y-3">
+                  {solutionVideos.map((video, index) => (
+                    <div
+                      key={index}
+                      className="rounded-2xl border border-slate-800 bg-[#070b14] p-4"
+                    >
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-sm font-black text-orange-400">
+                          فيديو الحل {index + 1}
+                        </span>
+
+                        {solutionVideos.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setSolutionVideos((prev) =>
+                                prev.filter((_, i) => i !== index)
+                              )
+                            }
+                            className="text-red-400 hover:text-red-300"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <Input
+                          placeholder={`عنوان فيديو الحل ${index + 1}`}
+                          value={video.title}
+                          onChange={(e) => {
+                            const val = e.target.value;
+
+                            setSolutionVideos((prev) =>
+                              prev.map((item, i) =>
+                                i === index
+                                  ? { ...item, title: val }
+                                  : item
+                              )
+                            );
+                          }}
+                          className="h-12 rounded-2xl border-slate-800 bg-[#0b111e] text-white"
+                        />
+
+                        <Input
+                          placeholder="https://youtube.com/..."
+                          value={video.youtube_url}
+                          onChange={(e) => {
+                            const val = e.target.value;
+
+                            setSolutionVideos((prev) =>
+                              prev.map((item, i) =>
+                                i === index
+                                  ? { ...item, youtube_url: val }
+                                  : item
+                              )
+                            );
+                          }}
+                          className="h-12 rounded-2xl border-slate-800 bg-[#0b111e] text-white"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
 
               {/* PDF File Upload */}
@@ -413,6 +658,7 @@ export default function AdminLecturesPage() {
             {/* Action Buttons */}
             <div className="flex items-center gap-4 pt-4 border-t border-slate-800">
               <Button
+                type="button"
                 onClick={handleSave}
                 disabled={loading}
                 className="flex-1 h-12 bg-[#2563eb] hover:bg-[#1d4ed8] text-white font-black rounded-2xl shadow-lg shadow-blue-500/20 transition"
@@ -421,6 +667,7 @@ export default function AdminLecturesPage() {
               </Button>
               {editingId && (
                 <Button
+                  type="button"
                   variant="outline"
                   onClick={resetForm}
                   className="h-12 px-6 rounded-2xl font-bold border-slate-800 bg-[#070b14] text-slate-300 hover:bg-slate-800 hover:text-white"
@@ -463,12 +710,6 @@ export default function AdminLecturesPage() {
                           <Layers3 className="w-3.5 h-3.5 text-blue-400" />
                           {lecture.chapters?.title || "بدون فصل"}
                         </span>
-                        {lecture.duration && (
-                          <span className="inline-flex items-center gap-1 text-xs font-semibold bg-slate-800 text-slate-300 px-3 py-1 rounded-xl border border-slate-700/50">
-                            <Clock3 className="w-3.5 h-3.5 text-blue-400" />
-                            {lecture.duration}
-                          </span>
-                        )}
                         {lecture.pdf_url && (
                           <span className="inline-flex items-center gap-1 text-xs font-semibold bg-red-500/10 text-red-400 px-3 py-1 rounded-xl border border-red-500/20">
                             <FileText className="w-3.5 h-3.5" />
@@ -493,6 +734,7 @@ export default function AdminLecturesPage() {
 
                   <div className="flex items-center gap-2 w-full md:w-auto justify-end">
                     <Button
+                      type="button"
                       variant="outline"
                       onClick={() => editLecture(lecture)}
                       className="h-11 px-4 rounded-2xl font-bold border-slate-800 bg-[#070b14] text-slate-300 hover:bg-slate-800 hover:text-white"
@@ -501,6 +743,7 @@ export default function AdminLecturesPage() {
                       تعديل
                     </Button>
                     <Button
+                      type="button"
                       variant="destructive"
                       onClick={() => deleteLecture(lecture.id)}
                       className="h-11 px-4 rounded-2xl font-bold bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20"

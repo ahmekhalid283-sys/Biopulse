@@ -22,17 +22,6 @@ type Lecture = {
   is_free: boolean;
 };
 
-/*
-|--------------------------------------------------------------------------
-| Chapter Images
-|--------------------------------------------------------------------------
-| كل محاضرات الفصل تستخدم نفس صورة الفصل.
-|
-| الاستثناءات:
-| - الدعامة والحركة
-| - الأحياء الجزيئية
-|--------------------------------------------------------------------------
-*/
 
 const CHAPTER_IMAGES: Record<string, string> = {
   "support-movement": "/images/chapters/support.png",
@@ -247,9 +236,7 @@ export default function ChapterPage() {
 
                 <div className="mt-5 flex gap-6 text-slate-300">
 
-                  <span>
-                    ⏱ {lecture.duration || "-"}
-                  </span>
+                  
 
                   <span
                     className={
@@ -258,9 +245,7 @@ export default function ChapterPage() {
                         : "text-orange-400"
                     }
                   >
-                    {lecture.is_free
-                      ? "🆓 مجانية"
-                      : "🔒 مدفوعة"}
+                    
                   </span>
 
                 </div>

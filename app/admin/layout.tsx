@@ -96,6 +96,7 @@ export default function AdminLayout({
         router.replace("/login");
         return;
       }
+      console.log("CURRENT ADMIN AUTH UID:", user.id);
 
       const { data, error } = await supabase
         .from("admins")

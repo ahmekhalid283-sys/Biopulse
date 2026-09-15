@@ -23,7 +23,11 @@ export default function AuthPage() {
   }, [router]);
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-slate-950 text-white">
+    /* 
+      قم بتغيير dir هنا إلى "ltr" إذا أردت عكسها بالكامل لليسار، 
+      أو جعلها متغيرة حسب لغة التطبيق أو المتصفح لديك.
+    */
+    <main dir="rtl" className="relative min-h-screen overflow-hidden bg-slate-950 text-white">
 
       {/* Background */}
       <div className="absolute inset-0">
@@ -35,13 +39,14 @@ export default function AuthPage() {
 
         <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/90 to-slate-900/70" />
 
-        <div className="absolute -top-40 -left-40 h-[500px] w-[500px] rounded-full bg-cyan-500/20 blur-[150px]" />
-        <div className="absolute bottom-0 right-0 h-[500px] w-[500px] rounded-full bg-blue-600/20 blur-[180px]" />
+        {/* تم استخدام خصائص الـ start لتتطابق تلقائياً مع اتجاه الـ dir */}
+        <div className="absolute -top-40 start-[-160px] h-[500px] w-[500px] rounded-full bg-cyan-500/20 blur-[150px]" />
+        <div className="absolute bottom-0 end-0 h-[500px] w-[500px] rounded-full bg-blue-600/20 blur-[180px]" />
       </div>
 
       <div className="relative z-10 flex min-h-screen">
 
-        {/* Left */}
+        {/* Left / First Section */}
         <section className="hidden lg:flex w-1/2 flex-col justify-center px-20">
 
           <div className="max-w-xl">
@@ -59,7 +64,7 @@ export default function AuthPage() {
             <p className="mt-8 text-lg leading-9 text-slate-300">
               تعلم بطريقة حديثة، تابع تقدمك، نافس أصدقاءك،
               وحقق أعلى الدرجات من خلال منصة تعليمية
-             .متكاملة صُممت خصيصًا لطلاب الثانوية العامة
+              متكاملة صُممت خصيصًا لطلاب الثانوية العامة.
             </p>
 
             <div className="mt-12 space-y-5">
@@ -75,7 +80,7 @@ export default function AuthPage() {
                   </h3>
 
                   <p className="text-sm text-slate-400">
-                   .فيديوهات منظمة لكل فصل
+                    فيديوهات منظمة لكل فصل.
                   </p>
                 </div>
               </div>
@@ -91,7 +96,7 @@ export default function AuthPage() {
                   </h3>
 
                   <p className="text-sm text-slate-400">
-                   .تحليل كامل للأداء بعد كل اختبار
+                    تحليل كامل للأداء بعد كل اختبار.
                   </p>
                 </div>
               </div>
@@ -107,7 +112,7 @@ export default function AuthPage() {
                   </h3>
 
                   <p className="text-sm text-slate-400">
-                   .نافس أفضل الطلاب باستمرار
+                    نافس أفضل الطلاب باستمرار.
                   </p>
                 </div>
               </div>
@@ -118,7 +123,7 @@ export default function AuthPage() {
 
         </section>
 
-        {/* Right */}
+        {/* Right / Second Section */}
         <section className="flex w-full items-center justify-center px-6 py-10 lg:w-1/2">
 
           <div className="w-full max-w-md">

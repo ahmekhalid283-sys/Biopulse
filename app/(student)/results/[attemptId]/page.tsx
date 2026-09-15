@@ -83,6 +83,7 @@ export default function ResultsContent() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6 }}
       className="min-h-screen bg-slate-950 text-white relative overflow-hidden p-6 lg:p-12"
+      dir="rtl"
     >
       <div className="max-w-4xl mx-auto space-y-8">
         <div className="bg-[#081321]/90 backdrop-blur-xl border border-cyan-500/20 rounded-3xl p-8 text-center space-y-4">
@@ -122,15 +123,20 @@ export default function ResultsContent() {
         <div className="mt-10 grid gap-4 md:grid-cols-3">
           {/* إعادة الامتحان */}
           {attempt?.exam_id && (
-            <Link
-              href={`/exam/${attempt.exam_id}`}
+            <button
+              onClick={() => {
+                localStorage.removeItem(`exam_end_${attempt.exam_id}`);
+                localStorage.removeItem(`exam_start_${attempt.exam_id}`);
+
+                window.location.href = `/exam/${attempt.exam_id}`;
+              }}
               className="group flex items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 py-5 text-xl font-black text-white shadow-[0_0_30px_rgba(6,182,212,0.25)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_45px_rgba(6,182,212,0.4)]"
             >
               <span className="text-2xl transition-transform duration-300 group-hover:rotate-180">
                 ↻
               </span>
               إعادة الامتحان
-            </Link>
+            </button>
           )}
 
           {/* مراجعة الامتحان */}
@@ -143,7 +149,7 @@ export default function ResultsContent() {
             </Link>
           )}
 
-          {/*الصفحة الرئيسية */}
+          {/* الصفحة الرئيسية */}
           <Link
             href="/dashboard"
             className="flex items-center justify-center rounded-2xl bg-blue-600 py-5 text-xl font-bold text-white transition-all duration-300 hover:-translate-y-1 hover:bg-blue-500"

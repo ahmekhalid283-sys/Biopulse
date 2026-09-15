@@ -8,44 +8,43 @@ import { supabase } from "@/lib/supabase";
 
 import { Button } from "@/components/ui/button";
 
+import {
+  ArrowLeft,
+  BookOpen,
+  CheckCircle2,
+  Clock3,
+  Download,
+  FileText,
+  Lightbulb,
+  Play,
+  Video,
+  ClipboardCheck,
+} from "lucide-react";
+
 type Lecture = {
   id: string;
   title: string;
   duration: string | null;
-
-  // فيديو الشرح
   youtube_url: string | null;
-
-  // فيديو الحل
   solution_youtube_url: string | null;
-
   pdf_url: string | null;
   chapter_id: string;
 };
-
-const CHAPTER_IMAGES: Record<string, string> = {
-  "support-movement": "/images/chapters/support.png",
-  hormones: "/images/chapters/hormones.png",
-  reproduction: "/images/chapters/reproduction.png",
-  immunity: "/images/chapters/immunity.png",
-  "molecular-biology": "/images/chapters/dna.png",
-};
-
-const DEFAULT_CHAPTER_IMAGE = "/images/chapters/default.png";
 
 export default function LecturePage() {
   const { lectureId } = useParams<{ lectureId: string }>();
 
   const [lecture, setLecture] = useState<Lecture | null>(null);
-  const [chapterSlug, setChapterSlug] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadLecture();
-  }, []);
+    if (!lectureId) return;
 
-  async function loadLecture() {
-    const id = lectureId;
+    loadLecture(lectureId);
+  }, [lectureId]);
+
+  async function loadLecture(id: string) {
+    setLoading(true);
 
     const { data, error } = await supabase
       .from("lectures")
@@ -55,226 +54,408 @@ export default function LecturePage() {
 
     if (!error && data) {
       setLecture(data);
-
-      // جلب الفصل الخاص بالمحاضرة
-      const { data: chapterData, error: chapterError } = await supabase
-        .from("chapters")
-        .select("slug")
-        .eq("id", data.chapter_id)
-        .single();
-
-      if (!chapterError && chapterData) {
-        setChapterSlug(chapterData.slug);
-      }
     }
 
     setLoading(false);
   }
 
+  /* ================= LOADING ================= */
+
   if (loading) {
     return (
-      <main className="min-h-screen flex items-center justify-center bg-slate-950 text-white">
-        <h2 className="text-2xl font-bold">
-          جاري تحميل المحاضرة...
-        </h2>
+      <main
+        className="min-h-screen bg-[#050914] text-white"
+        dir="rtl"
+      >
+        <div className="mx-auto flex min-h-screen max-w-6xl items-center justify-center px-6">
+          <div className="text-center">
+            <div className="mx-auto mb-4 h-9 w-9 animate-spin rounded-full border-2 border-slate-700 border-t-cyan-400" />
+
+            <p className="text-sm text-slate-500">
+              جاري تحميل المحاضرة...
+            </p>
+          </div>
+        </div>
       </main>
     );
   }
+
+  /* ================= NOT FOUND ================= */
 
   if (!lecture) {
     return (
-      <main className="min-h-screen flex items-center justify-center bg-slate-950 text-white">
-        <h2 className="text-2xl font-bold text-red-500">
-          المحاضرة غير موجودة
-        </h2>
+      <main
+        className="min-h-screen bg-[#050914] text-white"
+        dir="rtl"
+      >
+        <div className="mx-auto flex min-h-screen max-w-6xl items-center justify-center px-6">
+          <div className="w-full max-w-md border border-slate-800 bg-[#09101c] p-8 text-center">
+            <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full border border-red-500/20 bg-red-500/10">
+              <BookOpen className="h-6 w-6 text-red-400" />
+            </div>
+
+            <h2 className="text-xl font-bold">
+              المحاضرة غير موجودة
+            </h2>
+
+            <p className="mt-2 text-sm text-slate-500">
+              المحاضرة التي تبحث عنها غير متاحة حالياً.
+            </p>
+
+            <Link
+              href="/"
+              className="mt-6 inline-flex items-center gap-2 text-sm font-medium text-cyan-400 transition hover:text-cyan-300"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              العودة للرئيسية
+            </Link>
+          </div>
+        </div>
       </main>
     );
   }
 
-  const lectureImage =
-    CHAPTER_IMAGES[chapterSlug ?? ""] ?? DEFAULT_CHAPTER_IMAGE;
-
   return (
-    <main className="min-h-screen bg-slate-950 text-white relative overflow-hidden">
+    <main
+      className="relative min-h-screen overflow-hidden bg-[#050914] text-white"
+      dir="rtl"
+    >
+      {/* ================= BACKGROUND ================= */}
 
-      {/* Background */}
-      <div className="absolute inset-0 -z-10">
-        <img
-          src="/images/background.jpg"
-          className="w-full h-full object-cover opacity-10"
-          alt=""
-        />
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute right-0 top-0 h-[420px] w-[420px] rounded-full bg-cyan-500/[0.035] blur-3xl" />
 
-        <div className="absolute inset-0 bg-gradient-to-b from-slate-950/20 via-slate-950/80 to-slate-950" />
+        <div className="absolute bottom-0 left-0 h-[350px] w-[350px] rounded-full bg-blue-600/[0.025] blur-3xl" />
       </div>
 
-      <div className="max-w-7xl mx-auto px-8 py-12">
+      <div className="relative mx-auto max-w-6xl px-5 py-7 md:px-8 md:py-10">
 
-        {/* HEADER / BACK BUTTON */}
+        {/* ================= TOP BAR ================= */}
+
         <div className="mb-8 flex items-center justify-between">
+
           <Link
             href="/"
-            className="rounded-xl border border-cyan-500/30 bg-cyan-500/10 px-4 py-2 text-sm font-bold text-cyan-400 transition hover:bg-cyan-500/20"
+            className="group inline-flex items-center gap-2 text-sm text-slate-400 transition hover:text-white"
           >
-            ← العودة للرئيسية
+            <ArrowLeft className="h-4 w-4 transition-transform duration-200 group-hover:-translate-x-1" />
+
+            العودة للرئيسية
           </Link>
 
-          <div className="w-24" />
+          <div className="hidden items-center gap-2 text-xs text-slate-600 sm:flex">
+            <BookOpen className="h-3.5 w-3.5" />
+
+            BioPulse
+          </div>
+
         </div>
 
-        {/* Hero */}
-        <div className="rounded-3xl overflow-hidden border border-cyan-500/20 bg-[#081321]/90 backdrop-blur-xl">
+        {/* ================= LECTURE HEADER ================= */}
 
-          <img
-            src={lectureImage}
-            className="w-full h-72 object-cover"
-            onError={(e) => {
-              e.currentTarget.src = DEFAULT_CHAPTER_IMAGE;
-            }}
-            alt={lecture.title}
-          />
+        <section className="border border-slate-800 bg-[#09101c]">
 
-          <div className="p-8">
+          <div className="p-7 md:p-10">
 
-            <span className="inline-block rounded-full bg-cyan-500/20 px-4 py-2 text-cyan-300 text-sm font-bold">
-              {lecture.duration || "مدة غير محددة"}
-            </span>
+            {/* Badge */}
 
-            <h1 className="mt-5 text-5xl font-black">
+            <div className="mb-5 flex items-center gap-2">
+
+              <div className="flex h-10 w-10 items-center justify-center border border-cyan-400/20 bg-cyan-400/10">
+                <Video className="h-5 w-5 text-cyan-400" />
+              </div>
+
+              <div>
+                <p className="text-[11px] font-bold tracking-wider text-cyan-400">
+                  محاضرة تعليمية
+                </p>
+
+                <p className="mt-0.5 text-xs text-slate-600">
+                  BioPulse Learning
+                </p>
+              </div>
+
+            </div>
+
+            {/* Title */}
+
+            <h1 className="max-w-4xl text-3xl font-black leading-tight tracking-tight md:text-4xl lg:text-5xl">
               {lecture.title}
             </h1>
 
-            <p className="mt-4 text-slate-400 text-lg">
-              شاهد المحاضرة ثم شاهد فيديو الحل وقم بحل الامتحان للحصول على النقاط.
+            {/* Description */}
+
+            <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-500 md:text-base">
+              شاهد الشرح، راجع فيديوهات الحل، حمّل ملف المحاضرة،
+              ثم اختبر فهمك من خلال الاختبار.
             </p>
 
-          </div>
-        </div>
+            {/* Meta */}
 
-        {/* Cards */}
-        <div className="grid lg:grid-cols-4 gap-8 mt-10">
+            <div className="mt-7 flex flex-wrap items-center gap-6 border-t border-slate-800/80 pt-6">
 
-          {/* ================= VIDEO EXPLANATION ================= */}
-          <div className="rounded-3xl border border-cyan-500/20 bg-[#081321]/90 backdrop-blur-xl p-8 transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_0_35px_rgba(34,211,238,.25)]">
+              {lecture.duration && (
+                <div className="flex items-center gap-2 text-sm text-slate-400">
+                  <Clock3 className="h-4 w-4 text-slate-600" />
 
-            <div className="text-6xl mb-5">
-              🎥
+                  <span>{lecture.duration}</span>
+                </div>
+              )}
+
+              <div className="flex items-center gap-2 text-sm text-slate-400">
+                <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+
+                <span>محتوى متاح</span>
+              </div>
+
+              <div className="flex items-center gap-2 text-sm text-slate-400">
+                <BookOpen className="h-4 w-4 text-slate-600" />
+
+                <span>محاضرة تعليمية</span>
+              </div>
+
             </div>
 
-            <h2 className="text-2xl font-bold">
-              فيديو الشرح
-            </h2>
+          </div>
 
-            <p className="mt-3 text-slate-400">
-              شاهد شرح المحاضرة بالتفصيل.
-            </p>
+        </section>
+
+        {/* ================= SECTION TITLE ================= */}
+
+        <section className="mb-6 mt-12">
+
+          <p className="mb-2 text-xs font-bold tracking-[0.18em] text-cyan-500">
+            CONTENT
+          </p>
+
+          <h2 className="text-2xl font-black tracking-tight md:text-3xl">
+            محتوى المحاضرة
+          </h2>
+
+          <p className="mt-2 text-sm leading-6 text-slate-500">
+            اختر القسم الذي تريد البدء به.
+          </p>
+
+        </section>
+
+        {/* ================= CONTENT GRID ================= */}
+
+        <div className="grid gap-4 md:grid-cols-2">
+
+          {/* ================================================= */}
+          {/* EXPLANATION */}
+          {/* ================================================= */}
+
+          <section className="group flex min-h-[270px] flex-col border border-slate-800 bg-[#09101c] p-6 transition duration-200 hover:border-cyan-500/30">
+
+            <div className="flex items-center justify-between">
+
+              <div className="flex h-11 w-11 items-center justify-center border border-cyan-400/20 bg-cyan-400/10">
+                <Play className="h-5 w-5 fill-cyan-400 text-cyan-400" />
+              </div>
+
+              {lecture.youtube_url && (
+                <span className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-400">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                  متاح
+                </span>
+              )}
+
+            </div>
+
+            <div className="mt-6 flex-1">
+
+              <h3 className="text-xl font-bold">
+                فيديوهات الشرح
+              </h3>
+
+              <p className="mt-3 max-w-md text-sm leading-7 text-slate-500">
+                شاهد جميع فيديوهات شرح المحاضرة بالترتيب
+                وتابع المحتوى خطوة بخطوة.
+              </p>
+
+            </div>
 
             {lecture.youtube_url ? (
-              <a
-                href={lecture.youtube_url}
-                target="_blank"
-                rel="noopener noreferrer"
+              <Link
+                href={`/lectures/${lecture.id}/videos`}
+                className="mt-6"
               >
-                <Button className="mt-8 w-full h-14 rounded-xl bg-cyan-500 hover:bg-cyan-600 text-lg font-bold">
-                  ▶ مشاهدة الشرح
+                <Button className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-cyan-500 text-sm font-bold text-slate-950 transition hover:bg-cyan-400">
+                  <Play className="h-4 w-4 fill-current" />
+
+                  مشاهدة الشرح
                 </Button>
-              </a>
+              </Link>
             ) : (
-              <div className="mt-8 text-center text-slate-500">
-                فيديو الشرح غير متوفر
+              <div className="mt-6 border border-slate-800 py-3 text-center text-xs text-slate-600">
+                فيديوهات الشرح غير متوفرة حالياً
               </div>
             )}
 
-          </div>
+          </section>
 
-          {/* ================= SOLUTION VIDEO ================= */}
-          <div className="rounded-3xl border border-orange-500/20 bg-[#081321]/90 backdrop-blur-xl p-8 transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_0_35px_rgba(249,115,22,.25)]">
+          {/* ================================================= */}
+          {/* SOLUTION */}
+          {/* ================================================= */}
 
-            <div className="text-6xl mb-5">
-              🧠
+          <section className="group flex min-h-[270px] flex-col border border-slate-800 bg-[#09101c] p-6 transition duration-200 hover:border-orange-500/30">
+
+            <div className="flex items-center justify-between">
+
+              <div className="flex h-11 w-11 items-center justify-center border border-orange-400/20 bg-orange-400/10">
+                <Lightbulb className="h-5 w-5 text-orange-400" />
+              </div>
+
+              {lecture.solution_youtube_url && (
+                <span className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-400">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                  متاح
+                </span>
+              )}
+
             </div>
 
-            <h2 className="text-2xl font-bold">
-              فيديو الحل
-            </h2>
+            <div className="mt-6 flex-1">
 
-            <p className="mt-3 text-slate-400">
-              شاهد حل وأسئلة المحاضرة وراجع إجاباتك.
-            </p>
+              <h3 className="text-xl font-bold">
+                فيديوهات الحل
+              </h3>
+
+              <p className="mt-3 max-w-md text-sm leading-7 text-slate-500">
+                راجع طريقة حل الأسئلة من خلال فيديوهات الحل
+                المرتبة الخاصة بالمحاضرة.
+              </p>
+
+            </div>
 
             {lecture.solution_youtube_url ? (
-              <a
-                href={lecture.solution_youtube_url}
-                target="_blank"
-                rel="noopener noreferrer"
+              <Link
+                href={`/lectures/${lecture.id}/solution-videos`}
+                className="mt-6"
               >
-                <Button className="mt-8 w-full h-14 rounded-xl bg-orange-500 hover:bg-orange-600 text-lg font-bold">
-                  ▶ مشاهدة الحل
+                <Button className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-orange-500 text-sm font-bold text-slate-950 transition hover:bg-orange-400">
+                  <Play className="h-4 w-4 fill-current" />
+
+                  مشاهدة الحل
                 </Button>
-              </a>
+              </Link>
             ) : (
-              <div className="mt-8 text-center text-slate-500">
-                فيديو الحل غير متوفر
+              <div className="mt-6 border border-slate-800 py-3 text-center text-xs text-slate-600">
+                فيديوهات الحل غير متوفرة حالياً
               </div>
             )}
 
-          </div>
+          </section>
 
-          {/* ================= PDF ================= */}
-          <div className="rounded-3xl border border-purple-500/20 bg-[#081321]/90 backdrop-blur-xl p-8 transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_0_35px_rgba(168,85,247,.25)]">
+          {/* ================================================= */}
+          {/* PDF */}
+          {/* ================================================= */}
 
-            <div className="text-6xl mb-5">
-              📄
+          <section className="group flex min-h-[270px] flex-col border border-slate-800 bg-[#09101c] p-6 transition duration-200 hover:border-purple-500/30">
+
+            <div className="flex items-center justify-between">
+
+              <div className="flex h-11 w-11 items-center justify-center border border-purple-400/20 bg-purple-400/10">
+                <FileText className="h-5 w-5 text-purple-400" />
+              </div>
+
+              {lecture.pdf_url && (
+                <span className="text-[11px] font-semibold text-purple-400">
+                  PDF
+                </span>
+              )}
+
             </div>
 
-            <h2 className="text-2xl font-bold">
-              ملف المحاضرة
-            </h2>
+            <div className="mt-6 flex-1">
 
-            <p className="mt-3 text-slate-400">
-              حمل ملف المحاضرة من هنا.
-            </p>
+              <h3 className="text-xl font-bold">
+                ملف المحاضرة
+              </h3>
+
+              <p className="mt-3 max-w-md text-sm leading-7 text-slate-500">
+                حمّل ملف المحاضرة واحتفظ به للمراجعة في أي وقت.
+              </p>
+
+            </div>
 
             {lecture.pdf_url ? (
               <a
                 href={lecture.pdf_url}
                 target="_blank"
                 rel="noopener noreferrer"
+                className="mt-6"
               >
-                <Button className="mt-8 w-full h-14 rounded-xl bg-purple-600 hover:bg-purple-700 text-lg font-bold">
-                  تحميل PDF
+                <Button className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-purple-600 text-sm font-bold text-white transition hover:bg-purple-500">
+                  <Download className="h-4 w-4" />
+
+                  تحميل الملف
                 </Button>
               </a>
             ) : (
-              <div className="mt-8 text-center text-slate-500">
-                لا يوجد PDF
+              <div className="mt-6 border border-slate-800 py-3 text-center text-xs text-slate-600">
+                ملف المحاضرة غير متوفر حالياً
               </div>
             )}
 
-          </div>
+          </section>
 
-          {/* ================= EXAM ================= */}
-          <div className="rounded-3xl border border-pink-500/20 bg-[#081321]/90 backdrop-blur-xl p-8 transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_0_35px_rgba(236,72,153,.25)]">
+          {/* ================================================= */}
+          {/* EXAM */}
+          {/* ================================================= */}
 
-            <div className="text-6xl mb-5">
-              📝
+          <section className="group flex min-h-[270px] flex-col border border-slate-800 bg-[#09101c] p-6 transition duration-200 hover:border-pink-500/30">
+
+            <div className="flex items-center justify-between">
+
+              <div className="flex h-11 w-11 items-center justify-center border border-pink-400/20 bg-pink-400/10">
+                <ClipboardCheck className="h-5 w-5 text-pink-400" />
+              </div>
+
+              <span className="text-[11px] font-semibold text-pink-400">
+                اختبار
+              </span>
+
             </div>
 
-            <h2 className="text-2xl font-bold">
-              اختبار المحاضرة
-            </h2>
+            <div className="mt-6 flex-1">
 
-            <p className="mt-3 text-slate-400">
-              بعد الانتهاء من المشاهدة اختبر نفسك.
-            </p>
+              <h3 className="text-xl font-bold">
+                اختبار المحاضرة
+              </h3>
 
-            <Link href={`/lectures/${lecture.id}/exams`}>
-              <Button className="mt-8 w-full h-14 rounded-xl bg-pink-600 hover:bg-pink-700 text-lg font-bold">
-                🚀 ابدأ الامتحان
+              <p className="mt-3 max-w-md text-sm leading-7 text-slate-500">
+                اختبر فهمك للمحاضرة بعد الانتهاء من الشرح
+                ومراجعة فيديوهات الحل.
+              </p>
+
+            </div>
+
+            <Link
+              href={`/lectures/${lecture.id}/exams`}
+              className="mt-6"
+            >
+              <Button className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-pink-600 text-sm font-bold text-white transition hover:bg-pink-500">
+                <ClipboardCheck className="h-4 w-4" />
+
+                دخول الاختبار
               </Button>
             </Link>
 
-          </div>
+          </section>
+
+        </div>
+
+        {/* ================= BOTTOM NOTE ================= */}
+
+        <div className="mt-10 flex items-center justify-center gap-2 border-t border-slate-800/70 pt-6 text-center text-xs text-slate-600">
+
+          <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-500/70" />
+
+          <span>
+            ابدأ بالشرح ثم راجع الحل قبل دخول الاختبار.
+          </span>
 
         </div>
 

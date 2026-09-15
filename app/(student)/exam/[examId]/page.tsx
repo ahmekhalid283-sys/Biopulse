@@ -55,6 +55,9 @@ export default function ExamPage() {
     pendingReview: boolean;
   } | null>(null);
 
+  // State لتخزين معرف محاولة الحل
+  const [attemptId, setAttemptId] = useState<string | null>(null);
+
   // refs عشان التسليم التلقائي لما الوقت يخلص
   const studentIdRef = useRef("");
   const questionsRef = useRef<Question[]>([]);
@@ -267,7 +270,6 @@ export default function ExamPage() {
   async function autoSubmitOnTimeout() {
     if (finishedRef.current || submittingRef.current) return;
 
-    // لو studentId لسه مش جاهز، حاول تجيبه
     if (!studentIdRef.current) {
       const {
         data: { user },
@@ -372,6 +374,9 @@ export default function ExamPage() {
       return;
     }
 
+    // حفظ الـ attemptId هنا مباشرة
+    setAttemptId(insertedAttempt.id);
+
     const answersToInsert = qs.map((q) => {
       const ans = finalAnswers[q.id] || null;
       const isWritten = (q.question_type || "mcq") === "written";
@@ -402,16 +407,8 @@ export default function ExamPage() {
     localStorage.removeItem(`exam_end_${examId}`);
     localStorage.removeItem(`exam_start_${examId}`);
 
-    setResult({
-      score: calculatedScore,
-      total,
-      percentage,
-      pendingReview: hasWritten,
-    });
-    setFinished(true);
-    finishedRef.current = true;
-    setSubmitting(false);
-    submittingRef.current = false;
+    // توجيه الطالب مباشرة إلى صفحة النتائج بالمعرف الجديد
+    router.push(`/results/${insertedAttempt.id}`);
   }
 
   if (loading) {
@@ -444,12 +441,24 @@ export default function ExamPage() {
             <div className="mt-6 rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm font-bold text-amber-300">
               الحالة: في انتظار التصحيح
             </div>
-            <button
-              onClick={() => router.push("/dashboard")}
-              className="mt-8 w-full rounded-xl bg-cyan-500 py-3 text-sm font-bold text-slate-950 hover:bg-cyan-400"
-            >
-              العودة للرئيسية
-            </button>
+            <div className="mt-8 space-y-3">
+              {attemptId && (
+                <button
+                  onClick={() => {
+                    router.push(`/review/${attemptId}`);
+                  }}
+                  className="w-full rounded-xl border border-purple-500/40 bg-purple-500/10 py-3 text-sm font-bold text-purple-300 transition hover:bg-purple-500/20"
+                >
+                  مراجعة الإجابات
+                </button>
+              )}
+              <button
+                onClick={() => router.push("/dashboard")}
+                className="w-full rounded-xl bg-cyan-500 py-3 text-sm font-bold text-slate-950 hover:bg-cyan-400"
+              >
+                العودة للرئيسية
+              </button>
+            </div>
           </div>
         </main>
       );
@@ -482,12 +491,42 @@ export default function ExamPage() {
               <p className="mt-1 text-lg font-bold text-cyan-400">تم</p>
             </div>
           </div>
-          <button
-            onClick={() => router.push("/dashboard")}
-            className="mt-8 w-full rounded-xl bg-cyan-500 py-3 text-sm font-bold text-slate-950 hover:bg-cyan-400"
-          >
-            العودة للرئيسية
-          </button>
+
+          <div className="mt-8 space-y-3">
+            {/* إعادة الامتحان */}
+            <button
+              onClick={() => {
+                localStorage.removeItem(`exam_end_${examId}`);
+                localStorage.removeItem(`exam_start_${examId}`);
+                router.push(`/exam/${examId}`);
+              }}
+              className="w-full rounded-xl bg-orange-500 py-3 text-sm font-bold text-slate-950 transition hover:bg-orange-400"
+            >
+              إعادة الامتحان
+            </button>
+
+            {/* مراجعة الإجابات */}
+            {attemptId && (
+              <button
+                onClick={() => {
+                  router.push(`/review/${attemptId}`);
+                }}
+                className="w-full rounded-xl border border-purple-500/40 bg-purple-500/10 py-3 text-sm font-bold text-purple-300 transition hover:bg-purple-500/20"
+              >
+                مراجعة الإجابات
+              </button>
+            )}
+
+            {/* الصفحة الرئيسية */}
+            <button
+              onClick={() => {
+                router.push("/dashboard");
+              }}
+              className="w-full rounded-xl bg-cyan-500 py-3 text-sm font-bold text-slate-950 transition hover:bg-cyan-400"
+            >
+              الصفحة الرئيسية
+            </button>
+          </div>
         </div>
       </main>
     );

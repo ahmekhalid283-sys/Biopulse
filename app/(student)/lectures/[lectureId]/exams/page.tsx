@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { Timer, Trophy, Sparkles, FileText, ArrowRight } from "lucide-react";
+import { Timer, Trophy, Sparkles, FileText, ArrowLeft } from "lucide-react";
 
 type Exam = {
   id: string;
@@ -46,7 +46,10 @@ export default function LectureExamsPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-slate-950 text-white flex items-center justify-center">
+      <main 
+        dir="rtl" 
+        className="min-h-screen bg-slate-950 text-white flex items-center justify-center"
+      >
         <div className="flex items-center gap-3 text-cyan-400 text-xl font-medium animate-pulse">
           <Sparkles className="w-6 h-6 animate-spin" />
           جاري تحميل الامتحانات...
@@ -56,7 +59,7 @@ export default function LectureExamsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-100 p-6 md:p-10">
+    <main dir="rtl" className="min-h-screen bg-slate-950 text-slate-100 p-6 md:p-10">
       <div className="max-w-5xl mx-auto space-y-8">
         
         {/* Header */}
