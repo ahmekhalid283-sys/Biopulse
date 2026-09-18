@@ -163,7 +163,40 @@ export default function ChallengeQuestionsPage() {
 
         setQuestions(sorted as Question[]);
       } else {
-        setQuestions([]);
+        const { data, error } = await supabase
+          .from("questions")
+          .select("*")
+          .eq("challenge_id", challengeId)
+          .order("created_at", { ascending: true });
+
+        if (error) {
+          console.error("Quick challenge questions error:", error);
+          setQuestions([]);
+          return;
+        }
+
+        const mappedQuestions: Question[] = (data || []).map((q: any) => ({
+          id: q.id,
+          question: q.question_text || "",
+          question_type:
+            q.question_type === "essay"
+              ? "written"
+              : q.question_type,
+          option_a: q.options?.[0] || "-",
+          option_b: q.options?.[1] || "-",
+          option_c: q.options?.[2] || "-",
+          option_d: q.options?.[3] || "-",
+          correct_answer: q.correct_answer || "",
+          marks: Number(q.points) || 1,
+          explanation: null,
+          image_url: null,
+          option_a_image: null,
+          option_b_image: null,
+          option_c_image: null,
+          option_d_image: null,
+        }));
+
+        setQuestions(mappedQuestions);
       }
     } finally {
       setLoading(false);
@@ -192,11 +225,6 @@ export default function ChallengeQuestionsPage() {
   async function handleAddQuestion(e: React.FormEvent) {
     e.preventDefault();
 
-    if (!roundId) {
-      alert("لا يوجد دور محدد — افتح الصفحة من زر أسئلة التحدي بعد اختيار الدور");
-      return;
-    }
-
     if (!form.question.trim()) {
       alert("اكتب نص السؤال");
       return;
@@ -209,6 +237,7 @@ export default function ChallengeQuestionsPage() {
       let option_b = form.option_b.trim() || "-";
       let option_c = form.option_c.trim() || "-";
       let option_d = form.option_d.trim() || "-";
+
       let correct = form.correct_answer;
       let explanation = form.explanation.trim() || null;
 
@@ -217,18 +246,95 @@ export default function ChallengeQuestionsPage() {
         option_b = "خطأ";
         option_c = "-";
         option_d = "-";
+
         correct =
           form.correct_answer === "خطأ" || form.correct_answer === "B"
-            ? "B"
-            : "A";
+            ? "خطأ"
+            : "صح";
       }
 
       if (form.question_type === "written") {
-        option_a = option_b = option_c = option_d = "-";
-        correct = "A";
-        explanation =
-          form.correct_answer.trim() || form.explanation.trim() || null;
+        option_a = "-";
+        option_b = "-";
+        option_c = "-";
+        option_d = "-";
+
+        correct =
+          form.correct_answer.trim() ||
+          form.explanation.trim() ||
+          "";
       }
+
+      /*
+       * ==========================================
+       * QUICK / NORMAL CHALLENGE
+       * مفيهوش أدوار إقصائية
+       * ==========================================
+       */
+      if (!roundId) {
+        const { error } = await supabase
+          .from("questions")
+          .insert({
+            challenge_id: challengeId,
+            question_text: form.question.trim(),
+            question_type:
+              form.question_type === "written" ? "essay" : form.question_type,
+            options:
+              form.question_type === "mcq"
+                ? [
+                    form.option_a.trim(),
+                    form.option_b.trim(),
+                    form.option_c.trim(),
+                    form.option_d.trim(),
+                  ]
+                : form.question_type === "true_false"
+                ? ["صح", "خطأ"]
+                : [],
+            correct_answer:
+              form.question_type === "true_false"
+                ? correct === "A"
+                  ? "صح"
+                  : "خطأ"
+                : correct,
+            points: Number(form.marks),
+          });
+
+        if (error) {
+          alert("فشل إضافة السؤال: " + error.message);
+          return;
+        }
+
+        // تحديث العدد الحقيقي للأسئلة
+        const { count } = await supabase
+          .from("questions")
+          .select("*", {
+            count: "exact",
+            head: true,
+          })
+          .eq("challenge_id", challengeId);
+
+        await supabase
+          .from("challenges")
+          .update({
+            questions_count: count ?? 0,
+          })
+          .eq("id", challengeId);
+
+        alert("تم إضافة السؤال للتحدي السريع بنجاح");
+
+        setShowForm(false);
+        resetForm();
+        loadQuestions();
+
+        return;
+      }
+
+      /*
+       * ==========================================
+       * ELIMINATION CHALLENGE
+       * لازم يكون فيه Round
+       * ==========================================
+       */
 
       let image_url: string | null = null;
       let option_a_image: string | null = null;
@@ -237,10 +343,12 @@ export default function ChallengeQuestionsPage() {
       let option_d_image: string | null = null;
 
       if (questionImage) {
-        image_url = await uploadImage(questionImage, `questions/${challengeId}`);
+        image_url = await uploadImage(
+          questionImage,
+          `questions/${challengeId}`
+        );
       }
-      
-      // رفع صور الاختيارات فقط لو كان السؤال اختيار من متعدد (MCQ)
+
       if (form.question_type === "mcq") {
         if (optionImages.a) {
           option_a_image = await uploadImage(
@@ -248,18 +356,21 @@ export default function ChallengeQuestionsPage() {
             `options/${challengeId}`
           );
         }
+
         if (optionImages.b) {
           option_b_image = await uploadImage(
             optionImages.b,
             `options/${challengeId}`
           );
         }
+
         if (optionImages.c) {
           option_c_image = await uploadImage(
             optionImages.c,
             `options/${challengeId}`
           );
         }
+
         if (optionImages.d) {
           option_d_image = await uploadImage(
             optionImages.d,
@@ -270,25 +381,23 @@ export default function ChallengeQuestionsPage() {
 
       const { data: inserted, error } = await supabase
         .from("challenge_questions")
-        .insert([
-          {
-            question: form.question.trim(),
-            question_type: form.question_type,
-            option_a,
-            option_b,
-            option_c,
-            option_d,
-            correct_answer: correct,
-            explanation,
-            marks: Number(form.marks),
-            difficulty: form.difficulty,
-            image_url,
-            option_a_image,
-            option_b_image,
-            option_c_image,
-            option_d_image,
-          },
-        ])
+        .insert({
+          question: form.question.trim(),
+          question_type: form.question_type,
+          option_a,
+          option_b,
+          option_c,
+          option_d,
+          correct_answer: correct,
+          explanation,
+          marks: Number(form.marks),
+          difficulty: form.difficulty,
+          image_url,
+          option_a_image,
+          option_b_image,
+          option_c_image,
+          option_d_image,
+        })
         .select("id")
         .single();
 
@@ -301,11 +410,14 @@ export default function ChallengeQuestionsPage() {
         .from("challenge_round_questions")
         .select("question_order")
         .eq("round_id", roundId)
-        .order("question_order", { ascending: false })
+        .order("question_order", {
+          ascending: false,
+        })
         .limit(1)
         .maybeSingle();
 
-      const nextOrder = (lastLink?.question_order || 0) + 1;
+      const nextOrder =
+        (lastLink?.question_order ?? 0) + 1;
 
       const { error: linkError } = await supabase
         .from("challenge_round_questions")
@@ -316,13 +428,25 @@ export default function ChallengeQuestionsPage() {
         });
 
       if (linkError) {
-        alert("السؤال اتحفظ لكن فشل ربطه بالدور: " + linkError.message);
+        alert(
+          "السؤال اتحفظ لكن فشل ربطه بالدور: " +
+            linkError.message
+        );
         return;
       }
+
+      alert("تم إضافة السؤال للدور بنجاح");
 
       setShowForm(false);
       resetForm();
       loadQuestions();
+    } catch (error: any) {
+      console.error("Add challenge question error:", error);
+
+      alert(
+        "حدث خطأ أثناء إضافة السؤال: " +
+          (error?.message || "خطأ غير معروف")
+      );
     } finally {
       setSubmitting(false);
     }
@@ -339,7 +463,28 @@ export default function ChallengeQuestionsPage() {
         .eq("question_id", id);
     }
 
-    await supabase.from("challenge_questions").delete().eq("id", id);
+    if (roundId) {
+      await supabase.from("challenge_questions").delete().eq("id", id);
+    } else {
+      await supabase.from("questions").delete().eq("id", id);
+      
+      // تحديث العدد الحقيقي للأسئلة بعد الحذف
+      const { count } = await supabase
+        .from("questions")
+        .select("*", {
+          count: "exact",
+          head: true,
+        })
+        .eq("challenge_id", challengeId);
+
+      await supabase
+        .from("challenges")
+        .update({
+          questions_count: count ?? 0,
+        })
+        .eq("id", challengeId);
+    }
+
     loadQuestions();
   }
 
@@ -549,7 +694,7 @@ export default function ChallengeQuestionsPage() {
                 </section>
               )}
 
-              {/* Option images - تعديل هنا ليظهر فقط في الـ mcq ويختفي من الصح والخطأ */}
+              {/* Option images */}
               {form.question_type === "mcq" && (
                 <section>
                   <div className="mb-3 flex items-center gap-2">
@@ -705,52 +850,26 @@ export default function ChallengeQuestionsPage() {
           <div className="space-y-3">
             {questions.map((q, index) => (
               <div
-                key={q.id}
-                className="overflow-hidden rounded-3xl border border-slate-800 bg-[#0b111e]"
+                key={q.id || index}
+                className="flex items-center justify-between rounded-2xl border border-slate-800 bg-[#0b111e] p-4 sm:p-5"
               >
-                <div className="flex items-center justify-between border-b border-slate-800 px-5 py-4">
-                  <div className="flex flex-wrap items-center gap-2 text-xs font-bold text-slate-400">
-                    <ClipboardList className="h-4 w-4 text-blue-400" />
-                    <span>سؤال {index + 1}</span>
-                    <span>• {q.marks} درجة</span>
-                    <span>
-                      •{" "}
-                      {q.question_type === "written"
-                        ? "مقالي"
-                        : q.question_type === "true_false"
-                          ? "صح/خطأ"
-                          : "MCQ"}
-                    </span>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() =>
-                        router.push(
-                          `/admin/challenges/${challengeId}/questions/${q.id}/edit`
-                        )
-                      }
-                      className="rounded-xl bg-blue-500/15 p-2.5 text-blue-400 hover:bg-blue-500/25"
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(q.id)}
-                      className="rounded-xl bg-red-500/15 p-2.5 text-red-400 hover:bg-red-500/25"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                <div className="flex items-start gap-4">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-slate-800 bg-[#070b14] text-xs font-bold text-slate-400">
+                    {index + 1}
+                  </span>
+                  <div>
+                    <h4 className="font-bold text-white">{q.question}</h4>
+                    <p className="mt-1 text-xs text-slate-400">
+                      النوع: {q.question_type} | الدرجة: {q.marks}
+                    </p>
                   </div>
                 </div>
-                <div className="space-y-3 p-5">
-                  <p className="font-bold text-white">{q.question}</p>
-                  {q.image_url && (
-                    <img
-                      src={q.image_url}
-                      alt="question"
-                      className="max-h-48 rounded-2xl border border-slate-800 object-contain"
-                    />
-                  )}
-                </div>
+                <button
+                  onClick={() => handleDelete(q.id)}
+                  className="rounded-xl border border-red-500/20 bg-red-500/10 p-2 text-red-400 hover:bg-red-500/20"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
               </div>
             ))}
           </div>
